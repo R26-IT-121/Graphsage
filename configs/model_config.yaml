@@ -1,0 +1,37 @@
+# Hyperparameters for the Edge-Enhanced GraphSAGE model.
+# These are sane starting placeholders.
+
+model:
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.3
+  edge_mlp_hidden: 32        # Hidden width of the per-edge attention MLP (Novelty 1)
+
+training:
+  learning_rate: 0.001
+  batch_size: 1024
+  num_epochs: 50
+  optimizer: adam
+  weight_decay: 0.00001
+  focal_gamma: 2.0           # Focal Loss focusing parameter (Novelty 2)
+  focal_alpha: 0.25
+  early_stopping_patience: 5
+
+sampling:
+  k_hop: 2                   # k for fraud-ring subgraph extraction (Novelty 2 + 3)
+  num_neighbors: [25, 10]    # PyG NeighborLoader fan-out per layer
+  hard_negative_ratio: 1.0   # 1 hard negative per fraud sample
+
+inference:
+  risk_thresholds:
+    low: 0.25
+    medium: 0.5
+    high: 0.75
+    critical: 0.9
+  max_latency_ms: 500        # NFR1 — must respond within this for Member 4 fusion engine
+
+paths:
+  raw_csv: data/raw/PS_20174392719_1491204439457_log.csv
+  processed_dir: data/processed
+  graph_dir: data/graph
+  checkpoint_dir: checkpoints
