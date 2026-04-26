@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graphsage"
+version = "0.1.0"
+description = "Edge-Enhanced GraphSAGE Relational Fraud Detector — DeepSentinel R26-IT-121"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Academic research" }
+authors = [
+    { name = "`Sachintha Bhashitha", email = "sachinthabhashithawork@gmail.com" }
+]
+keywords = ["graph-neural-networks", "fraud-detection", "graphsage", "anti-money-laundering", "pytorch-geometric"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "torch>=2.2",
+    "torch-geometric>=2.5",
+    "networkx>=3.2",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "scikit-learn>=1.4",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "kagglehub>=0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+    "pytest>=8.0",
+    "ruff>=0.3",
+]
+
+[project.urls]
+Repository = "https://github.com/LEXES7/Graphsage"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Note: torch-scatter and torch-sparse are sometimes required by PyG and depend
+# on the torch + CUDA build. Install separately via the PyG wheel index — see README.

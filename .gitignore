@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_meta
+
+# Project data — never commit
+data/raw/*
+data/processed/*
+data/graph/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/graph/.gitkeep
+
+# Trained model weights
+checkpoints/*
+!checkpoints/.gitkeep
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Secrets / env
+.env
+*.pem
+kaggle.json
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+runs/
+wandb/
