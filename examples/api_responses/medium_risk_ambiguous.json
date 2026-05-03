@@ -1,0 +1,116 @@
+{
+  "transaction_id": "TX_2026_05_01_00091230",
+  "timestamp": "2026-05-01T08:14:02.450Z",
+  "model_version": "graphsage-edge-mlp-v0.3.0",
+  "stage": "stage_3_full",
+
+  "relational_risk_score": 0.58,
+  "risk_level": "HIGH",
+  "confidence": 0.62,
+
+  "input_transaction": {
+    "step": 412,
+    "type": "CASH_OUT",
+    "amount": 28430.50,
+    "nameOrig": "C1500023991",
+    "nameDest": "C778293445",
+    "oldbalanceOrg": 28430.50,
+    "newbalanceOrig": 0.0,
+    "oldbalanceDest": 12340.10,
+    "newbalanceDest": 40770.60,
+    "isFlaggedFraud": 0
+  },
+
+  "suspicious_subgraph": {
+    "k_hop": 2,
+    "node_count": 3,
+    "edge_count": 2,
+    "nodes": [
+      {
+        "account_id": "C778293445",
+        "role": "RELAY",
+        "node_risk_score": 0.71,
+        "in_degree": 2,
+        "out_degree": 0,
+        "first_seen_step": 380,
+        "last_seen_step": 412,
+        "fraud_count_received": 1,
+        "total_received_amount": 84320.10
+      },
+      {
+        "account_id": "C1500023991",
+        "role": "TRIGGER_PARTICIPANT",
+        "node_risk_score": 0.55,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 412,
+        "last_seen_step": 412,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      },
+      {
+        "account_id": "C994732001",
+        "role": "FRESH_SENDER",
+        "node_risk_score": 0.61,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 380,
+        "last_seen_step": 380,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      }
+    ],
+    "edges": [
+      {
+        "src": "C1500023991",
+        "dst": "C778293445",
+        "amount": 28430.50,
+        "step": 412,
+        "edge_attention_weight": 0.62,
+        "edge_features": {
+          "amount_log": 10.25,
+          "drain_ratio": 1.0,
+          "src_drained": 1,
+          "dst_was_empty": 0,
+          "time_gap": 32,
+          "type_is_transfer": 0
+        },
+        "is_trigger_edge": true,
+        "is_fraud_predicted": true
+      },
+      {
+        "src": "C994732001",
+        "dst": "C778293445",
+        "amount": 55889.60,
+        "step": 380,
+        "edge_attention_weight": 0.58,
+        "edge_features": {
+          "amount_log": 10.93,
+          "drain_ratio": 1.0,
+          "src_drained": 1,
+          "dst_was_empty": 1,
+          "time_gap": -1,
+          "type_is_transfer": 0
+        },
+        "is_trigger_edge": false,
+        "is_fraud_predicted": true
+      }
+    ],
+    "sink_account": "C778293445",
+    "pattern": "HUB_AND_SPOKE",
+    "pattern_confidence": 0.54,
+    "structural_evidence": {
+      "convergence_count": 2,
+      "fresh_sender_ratio": 1.0,
+      "mean_drain_ratio": 1.0,
+      "mules_in_subgraph": 0
+    }
+  },
+
+  "metadata": {
+    "inference_latency_ms": 38,
+    "graph_version": "paysim_2026_05_01",
+    "extraction_method": "k_hop_subgraph_pyg",
+    "ablation_stage": 3
+  }
+}

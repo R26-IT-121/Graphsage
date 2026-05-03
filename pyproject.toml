@@ -44,7 +44,7 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/LEXES7/Graphsage"
+Repository = "https://github.com/LEXES7/R26-IT-121"
 
 [tool.setuptools.packages.find]
 where = ["src"]

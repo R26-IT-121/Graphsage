@@ -1,0 +1,200 @@
+{
+  "transaction_id": "TX_2026_05_01_00045821",
+  "timestamp": "2026-05-01T03:42:17.123Z",
+  "model_version": "graphsage-edge-mlp-v0.3.0",
+  "stage": "stage_3_full",
+
+  "relational_risk_score": 0.94,
+  "risk_level": "CRITICAL",
+  "confidence": 0.91,
+
+  "input_transaction": {
+    "step": 723,
+    "type": "TRANSFER",
+    "amount": 187543.22,
+    "nameOrig": "C2029041842",
+    "nameDest": "C964377943",
+    "oldbalanceOrg": 187543.22,
+    "newbalanceOrig": 0.0,
+    "oldbalanceDest": 0.0,
+    "newbalanceDest": 187543.22,
+    "isFlaggedFraud": 0
+  },
+
+  "suspicious_subgraph": {
+    "k_hop": 2,
+    "node_count": 6,
+    "edge_count": 5,
+    "nodes": [
+      {
+        "account_id": "C964377943",
+        "role": "MULE_CENTRAL",
+        "node_risk_score": 0.97,
+        "in_degree": 4,
+        "out_degree": 0,
+        "first_seen_step": 300,
+        "last_seen_step": 723,
+        "fraud_count_received": 3,
+        "total_received_amount": 729382.45
+      },
+      {
+        "account_id": "C2029041842",
+        "role": "TRIGGER_PARTICIPANT",
+        "node_risk_score": 0.89,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 723,
+        "last_seen_step": 723,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      },
+      {
+        "account_id": "C1203474575",
+        "role": "FRESH_SENDER",
+        "node_risk_score": 0.85,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 300,
+        "last_seen_step": 300,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      },
+      {
+        "account_id": "C388640141",
+        "role": "FRESH_SENDER",
+        "node_risk_score": 0.82,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 401,
+        "last_seen_step": 401,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      },
+      {
+        "account_id": "C280723002",
+        "role": "LEGITIMATE",
+        "node_risk_score": 0.12,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 330,
+        "last_seen_step": 330,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      },
+      {
+        "account_id": "C2084687045",
+        "role": "LEGITIMATE",
+        "node_risk_score": 0.08,
+        "in_degree": 0,
+        "out_degree": 1,
+        "first_seen_step": 397,
+        "last_seen_step": 397,
+        "fraud_count_received": 0,
+        "total_received_amount": 0.0
+      }
+    ],
+    "edges": [
+      {
+        "src": "C2029041842",
+        "dst": "C964377943",
+        "amount": 187543.22,
+        "step": 723,
+        "edge_attention_weight": 0.93,
+        "edge_features": {
+          "amount_log": 12.14,
+          "drain_ratio": 1.0,
+          "src_drained": 1,
+          "dst_was_empty": 0,
+          "time_gap": -1,
+          "type_is_transfer": 1
+        },
+        "is_trigger_edge": true,
+        "is_fraud_predicted": true
+      },
+      {
+        "src": "C1203474575",
+        "dst": "C964377943",
+        "amount": 176059.20,
+        "step": 300,
+        "edge_attention_weight": 0.91,
+        "edge_features": {
+          "amount_log": 12.08,
+          "drain_ratio": 1.0,
+          "src_drained": 1,
+          "dst_was_empty": 1,
+          "time_gap": -1,
+          "type_is_transfer": 0
+        },
+        "is_trigger_edge": false,
+        "is_fraud_predicted": true
+      },
+      {
+        "src": "C388640141",
+        "dst": "C964377943",
+        "amount": 5838803.00,
+        "step": 401,
+        "edge_attention_weight": 0.89,
+        "edge_features": {
+          "amount_log": 15.58,
+          "drain_ratio": 1.0,
+          "src_drained": 1,
+          "dst_was_empty": 0,
+          "time_gap": 101,
+          "type_is_transfer": 0
+        },
+        "is_trigger_edge": false,
+        "is_fraud_predicted": true
+      },
+      {
+        "src": "C280723002",
+        "dst": "C964377943",
+        "amount": 46430.95,
+        "step": 330,
+        "edge_attention_weight": 0.31,
+        "edge_features": {
+          "amount_log": 10.74,
+          "drain_ratio": 0.224,
+          "src_drained": 0,
+          "dst_was_empty": 0,
+          "time_gap": 30,
+          "type_is_transfer": 0
+        },
+        "is_trigger_edge": false,
+        "is_fraud_predicted": false
+      },
+      {
+        "src": "C2084687045",
+        "dst": "C964377943",
+        "amount": 143484.90,
+        "step": 397,
+        "edge_attention_weight": 0.27,
+        "edge_features": {
+          "amount_log": 11.87,
+          "drain_ratio": 0.0,
+          "src_drained": 1,
+          "dst_was_empty": 0,
+          "time_gap": 67,
+          "type_is_transfer": 0
+        },
+        "is_trigger_edge": false,
+        "is_fraud_predicted": false
+      }
+    ],
+    "sink_account": "C964377943",
+    "pattern": "HUB_AND_SPOKE",
+    "pattern_confidence": 0.88,
+    "structural_evidence": {
+      "convergence_count": 5,
+      "fresh_sender_ratio": 0.6,
+      "mean_drain_ratio": 0.645,
+      "mules_in_subgraph": 1
+    }
+  },
+
+  "metadata": {
+    "inference_latency_ms": 47,
+    "graph_version": "paysim_2026_05_01",
+    "extraction_method": "k_hop_subgraph_pyg",
+    "ablation_stage": 3
+  }
+}
