@@ -1,16 +1,15 @@
-"""Re-evaluate existing checkpoints with threshold tuning.
+"""Re-evaluate all existing checkpoints with threshold tuning.
 
-Loads Stage 1 and Stage 2 checkpoints, runs forward pass on val + test,
+Loads Stages 1, 2, 3a, 3b checkpoints, runs forward pass on val + test,
 finds the optimal threshold on val, reports test metrics at that threshold.
 
 This is the standard fix for the inflated-recall / low-precision pattern
 seen with high pos_weight under severe class imbalance.
 
-Reads:  checkpoints/stage1_baseline.pt
-        checkpoints/stage2_edge_mlp.pt
+Reads:  checkpoints/stage{1_baseline,2_edge_mlp,3a_focal,3_full}.pt
         data/graph/paysim_graph.pt
 Writes: reports/ablation_tuned.json
-        prints clean comparison table
+        prints the full ablation table
 
 Usage:
     python scripts/eval_with_tuned_threshold.py
@@ -30,6 +29,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 GRAPH_PATH = REPO_ROOT / "data" / "graph" / "paysim_graph.pt"
 S1_CKPT = REPO_ROOT / "checkpoints" / "stage1_baseline.pt"
 S2_CKPT = REPO_ROOT / "checkpoints" / "stage2_edge_mlp.pt"
+S3A_CKPT = REPO_ROOT / "checkpoints" / "stage3a_focal.pt"
+S3_CKPT = REPO_ROOT / "checkpoints" / "stage3_full.pt"
 OUT_PATH = REPO_ROOT / "reports" / "ablation_tuned.json"
 
 
@@ -95,7 +96,7 @@ def main() -> None:
     # ---- Stage 2 ----
     if S2_CKPT.exists():
         print("\n" + "=" * 60)
-        print("Stage 2 — Edge-Enhanced GraphSAGE")
+        print("Stage 2 — Edge-Enhanced GraphSAGE (Novelty 1)")
         print("=" * 60)
         ckpt = torch.load(S2_CKPT, weights_only=False, map_location=device)
         hp = ckpt.get("hyperparameters", {})
@@ -119,6 +120,65 @@ def main() -> None:
         _print_eval("Stage 2", eval_out)
     else:
         print(f"⚠️  {S2_CKPT.name} not found - skip Stage 2")
+
+    # ---- Stage 3a (Focal Loss only — empirically failed) ----
+    if S3A_CKPT.exists():
+        print("\n" + "=" * 60)
+        print("Stage 3a — Edge-MLP + Focal Loss (full-batch, demonstrated unstable)")
+        print("=" * 60)
+        try:
+            ckpt = torch.load(S3A_CKPT, weights_only=False, map_location=device)
+            hp = ckpt.get("hyperparameters", {})
+            m = EdgeEnhancedGraphSAGE(
+                in_dim=in_dim,
+                edge_dim=edge_dim,
+                hidden_dim=hp.get("hidden_dim", 64),
+                edge_mlp_hidden=hp.get("edge_mlp_hidden", 32),
+                dropout=hp.get("dropout", 0.3),
+            )
+            if ckpt.get("state_dict"):
+                m.load_state_dict(ckpt["state_dict"])
+                logits = load_logits(m, data, use_edge_attr=True, device=device)
+                eval_out = evaluate_with_tuned_threshold(
+                    val_logits=logits[data.val_mask.cpu()],
+                    val_y=data.y[data.val_mask].cpu(),
+                    test_logits=logits[data.test_mask.cpu()],
+                    test_y=data.y[data.test_mask].cpu(),
+                )
+                results["stage_3a"] = eval_out
+                _print_eval("Stage 3a", eval_out)
+            else:
+                print(f"⚠️  Stage 3a checkpoint has no state_dict (training collapsed)")
+        except Exception as exc:
+            print(f"⚠️  Could not load Stage 3a: {exc}")
+
+    # ---- Stage 3b (full system: Edge-MLP + Focal + Sampler) ----
+    if S3_CKPT.exists():
+        print("\n" + "=" * 60)
+        print("Stage 3 — Full system (Edge-MLP + Focal + Sampler) [Novelty 2]")
+        print("=" * 60)
+        ckpt = torch.load(S3_CKPT, weights_only=False, map_location=device)
+        hp = ckpt.get("hyperparameters", {})
+        m = EdgeEnhancedGraphSAGE(
+            in_dim=in_dim,
+            edge_dim=edge_dim,
+            hidden_dim=hp.get("hidden_dim", 64),
+            edge_mlp_hidden=hp.get("edge_mlp_hidden", 32),
+            dropout=hp.get("dropout", 0.3),
+        )
+        m.load_state_dict(ckpt["state_dict"])
+        logits = load_logits(m, data, use_edge_attr=True, device=device)
+
+        eval_out = evaluate_with_tuned_threshold(
+            val_logits=logits[data.val_mask.cpu()],
+            val_y=data.y[data.val_mask].cpu(),
+            test_logits=logits[data.test_mask.cpu()],
+            test_y=data.y[data.test_mask].cpu(),
+        )
+        results["stage_3"] = eval_out
+        _print_eval("Stage 3", eval_out)
+    else:
+        print(f"⚠️  {S3_CKPT.name} not found - skip Stage 3")
 
     # ---- Ablation table ----
     print("\n" + "=" * 78)
@@ -159,6 +219,8 @@ def _print_table(results: dict) -> None:
     for key, label in [
         ("stage_1", "Stage 1 — Baseline"),
         ("stage_2", "Stage 2 — + Edge-MLP (Novelty 1)"),
+        ("stage_3a", "Stage 3a — + Focal Loss (full-batch)"),
+        ("stage_3", "Stage 3 — + Imbalance Sampler (Novelty 2)"),
     ]:
         if key not in results:
             continue
