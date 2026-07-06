@@ -1,0 +1,1093 @@
+{
+  "k_hop": 2,
+  "node_count": 39,
+  "edge_count": 38,
+  "nodes": [
+    {
+      "account_id": "C829613019",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1323,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 9,
+      "last_seen_step": 9,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1049795740",
+      "role": "MULE_CENTRAL",
+      "node_risk_score": 0.3248,
+      "in_degree": 38,
+      "out_degree": 0,
+      "first_seen_step": 9,
+      "last_seen_step": 354,
+      "fraud_count_received": 1,
+      "total_received_amount": 23190890.82
+    },
+    {
+      "account_id": "C1115894020",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1201,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 9,
+      "last_seen_step": 9,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1297871892",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1261,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 9,
+      "last_seen_step": 9,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1810292128",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1067,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 10,
+      "last_seen_step": 10,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C338493029",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1002,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 10,
+      "last_seen_step": 10,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1399189724",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1466,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 10,
+      "last_seen_step": 10,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1650578545",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0926,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 10,
+      "last_seen_step": 10,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1339290977",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1206,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 11,
+      "last_seen_step": 11,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C14859246",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0937,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 11,
+      "last_seen_step": 11,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C119191426",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.113,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 12,
+      "last_seen_step": 12,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C883727234",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1433,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 12,
+      "last_seen_step": 12,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1522025937",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0959,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 13,
+      "last_seen_step": 13,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C94493246",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1886,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 14,
+      "last_seen_step": 14,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C370040756",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0899,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 15,
+      "last_seen_step": 15,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C145052362",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0879,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 15,
+      "last_seen_step": 15,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C919816231",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1308,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 15,
+      "last_seen_step": 15,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C243920196",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1197,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 16,
+      "last_seen_step": 16,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C916277687",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1033,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 16,
+      "last_seen_step": 16,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1982512389",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1281,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 18,
+      "last_seen_step": 18,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C629178353",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1299,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 20,
+      "last_seen_step": 20,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1687292848",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0751,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 21,
+      "last_seen_step": 21,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1743657976",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1071,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 39,
+      "last_seen_step": 39,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C113835801",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1243,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 43,
+      "last_seen_step": 43,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C2013186093",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1167,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 96,
+      "last_seen_step": 96,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1237876826",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0829,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 131,
+      "last_seen_step": 131,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1033208755",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1163,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 138,
+      "last_seen_step": 138,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C684788499",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1298,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 157,
+      "last_seen_step": 157,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1135506379",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.123,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 159,
+      "last_seen_step": 159,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C51085357",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1061,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 159,
+      "last_seen_step": 159,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1208020669",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1229,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 160,
+      "last_seen_step": 160,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C506081036",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.2026,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 180,
+      "last_seen_step": 180,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C107763968",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1158,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 187,
+      "last_seen_step": 187,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C757942096",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1273,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 227,
+      "last_seen_step": 227,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C262548932",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1128,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 282,
+      "last_seen_step": 282,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C926253657",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1034,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 306,
+      "last_seen_step": 306,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1759262279",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0975,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 348,
+      "last_seen_step": 348,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1363018209",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.0606,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 354,
+      "last_seen_step": 354,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    },
+    {
+      "account_id": "C1012063401",
+      "role": "FRESH_SENDER",
+      "node_risk_score": 0.1148,
+      "in_degree": 0,
+      "out_degree": 1,
+      "first_seen_step": 354,
+      "last_seen_step": 354,
+      "fraud_count_received": 0,
+      "total_received_amount": 0.0
+    }
+  ],
+  "edges": [
+    {
+      "src": "C829613019",
+      "dst": "C1049795740",
+      "amount": 85952.99,
+      "step": 9,
+      "edge_attention_weight": 0.1512,
+      "edge_features": {
+        "amount_log": 11.3616,
+        "drain_ratio": 0.2167,
+        "src_drained": 0.0,
+        "dst_was_empty": 0.0,
+        "time_gap": -1.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1115894020",
+      "dst": "C1049795740",
+      "amount": 156130.23,
+      "step": 9,
+      "edge_attention_weight": 0.1342,
+      "edge_features": {
+        "amount_log": 11.9585,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1297871892",
+      "dst": "C1049795740",
+      "amount": 115226.1,
+      "step": 9,
+      "edge_attention_weight": 0.1299,
+      "edge_features": {
+        "amount_log": 11.6547,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1810292128",
+      "dst": "C1049795740",
+      "amount": 322841.03,
+      "step": 10,
+      "edge_attention_weight": 0.1139,
+      "edge_features": {
+        "amount_log": 12.6849,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C338493029",
+      "dst": "C1049795740",
+      "amount": 474170.56,
+      "step": 10,
+      "edge_attention_weight": 0.1192,
+      "edge_features": {
+        "amount_log": 13.0693,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1399189724",
+      "dst": "C1049795740",
+      "amount": 45627.15,
+      "step": 10,
+      "edge_attention_weight": 0.1424,
+      "edge_features": {
+        "amount_log": 10.7283,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1650578545",
+      "dst": "C1049795740",
+      "amount": 764381.44,
+      "step": 10,
+      "edge_attention_weight": 0.1134,
+      "edge_features": {
+        "amount_log": 13.5468,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1339290977",
+      "dst": "C1049795740",
+      "amount": 152670.62,
+      "step": 11,
+      "edge_attention_weight": 0.124,
+      "edge_features": {
+        "amount_log": 11.936,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C14859246",
+      "dst": "C1049795740",
+      "amount": 712863.06,
+      "step": 11,
+      "edge_attention_weight": 0.1142,
+      "edge_features": {
+        "amount_log": 13.477,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C119191426",
+      "dst": "C1049795740",
+      "amount": 228068.83,
+      "step": 12,
+      "edge_attention_weight": 0.1206,
+      "edge_features": {
+        "amount_log": 12.3374,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C883727234",
+      "dst": "C1049795740",
+      "amount": 52574.05,
+      "step": 12,
+      "edge_attention_weight": 0.151,
+      "edge_features": {
+        "amount_log": 10.87,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1522025937",
+      "dst": "C1049795740",
+      "amount": 616810.25,
+      "step": 13,
+      "edge_attention_weight": 0.1072,
+      "edge_features": {
+        "amount_log": 13.3323,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C94493246",
+      "dst": "C1049795740",
+      "amount": 8961.61,
+      "step": 14,
+      "edge_attention_weight": 0.1754,
+      "edge_features": {
+        "amount_log": 9.1008,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C370040756",
+      "dst": "C1049795740",
+      "amount": 909266.06,
+      "step": 15,
+      "edge_attention_weight": 0.1024,
+      "edge_features": {
+        "amount_log": 13.7204,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C145052362",
+      "dst": "C1049795740",
+      "amount": 1041524.88,
+      "step": 15,
+      "edge_attention_weight": 0.1048,
+      "edge_features": {
+        "amount_log": 13.8562,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C919816231",
+      "dst": "C1049795740",
+      "amount": 92060.58,
+      "step": 15,
+      "edge_attention_weight": 0.1421,
+      "edge_features": {
+        "amount_log": 11.4302,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C243920196",
+      "dst": "C1049795740",
+      "amount": 159245.64,
+      "step": 16,
+      "edge_attention_weight": 0.1176,
+      "edge_features": {
+        "amount_log": 11.9782,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C916277687",
+      "dst": "C1049795740",
+      "amount": 394136.34,
+      "step": 16,
+      "edge_attention_weight": 0.1216,
+      "edge_features": {
+        "amount_log": 12.8845,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1982512389",
+      "dst": "C1049795740",
+      "amount": 104940.38,
+      "step": 18,
+      "edge_attention_weight": 0.1165,
+      "edge_features": {
+        "amount_log": 11.5612,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 2.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C629178353",
+      "dst": "C1049795740",
+      "amount": 96220.59,
+      "step": 20,
+      "edge_attention_weight": 0.1177,
+      "edge_features": {
+        "amount_log": 11.4744,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 2.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1687292848",
+      "dst": "C1049795740",
+      "amount": 2658530.5,
+      "step": 21,
+      "edge_attention_weight": 0.0904,
+      "edge_features": {
+        "amount_log": 14.7933,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1743657976",
+      "dst": "C1049795740",
+      "amount": 316580.69,
+      "step": 39,
+      "edge_attention_weight": 0.0727,
+      "edge_features": {
+        "amount_log": 12.6653,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 18.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C113835801",
+      "dst": "C1049795740",
+      "amount": 126219.62,
+      "step": 43,
+      "edge_attention_weight": 0.1096,
+      "edge_features": {
+        "amount_log": 11.7458,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 4.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C2013186093",
+      "dst": "C1049795740",
+      "amount": 186853.83,
+      "step": 96,
+      "edge_attention_weight": 0.1591,
+      "edge_features": {
+        "amount_log": 12.1381,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 53.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1237876826",
+      "dst": "C1049795740",
+      "amount": 1480401.75,
+      "step": 131,
+      "edge_attention_weight": 0.0569,
+      "edge_features": {
+        "amount_log": 14.2078,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 35.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1033208755",
+      "dst": "C1049795740",
+      "amount": 190331.62,
+      "step": 138,
+      "edge_attention_weight": 0.0844,
+      "edge_features": {
+        "amount_log": 12.1565,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 7.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C684788499",
+      "dst": "C1049795740",
+      "amount": 96479.91,
+      "step": 157,
+      "edge_attention_weight": 0.0752,
+      "edge_features": {
+        "amount_log": 11.4771,
+        "drain_ratio": 0.6831,
+        "src_drained": 0.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 19.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1135506379",
+      "dst": "C1049795740",
+      "amount": 134930.03,
+      "step": 159,
+      "edge_attention_weight": 0.113,
+      "edge_features": {
+        "amount_log": 11.8125,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 2.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C51085357",
+      "dst": "C1049795740",
+      "amount": 334022.44,
+      "step": 159,
+      "edge_attention_weight": 0.1237,
+      "edge_features": {
+        "amount_log": 12.719,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1208020669",
+      "dst": "C1049795740",
+      "amount": 135753.64,
+      "step": 160,
+      "edge_attention_weight": 0.1257,
+      "edge_features": {
+        "amount_log": 11.8186,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 1.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C506081036",
+      "dst": "C1049795740",
+      "amount": 5485.18,
+      "step": 180,
+      "edge_attention_weight": 0.1133,
+      "edge_features": {
+        "amount_log": 8.61,
+        "drain_ratio": 0.1362,
+        "src_drained": 0.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 20.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C107763968",
+      "dst": "C1049795740",
+      "amount": 195747.23,
+      "step": 187,
+      "edge_attention_weight": 0.0865,
+      "edge_features": {
+        "amount_log": 12.1846,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 7.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C757942096",
+      "dst": "C1049795740",
+      "amount": 108748.02,
+      "step": 227,
+      "edge_attention_weight": 0.1364,
+      "edge_features": {
+        "amount_log": 11.5968,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 40.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C262548932",
+      "dst": "C1049795740",
+      "amount": 229797.98,
+      "step": 282,
+      "edge_attention_weight": 0.1572,
+      "edge_features": {
+        "amount_log": 12.345,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 55.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C926253657",
+      "dst": "C1049795740",
+      "amount": 390648.31,
+      "step": 306,
+      "edge_attention_weight": 0.0692,
+      "edge_features": {
+        "amount_log": 12.8756,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 24.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1759262279",
+      "dst": "C1049795740",
+      "amount": 560579.25,
+      "step": 348,
+      "edge_attention_weight": 0.0969,
+      "edge_features": {
+        "amount_log": 13.2367,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 42.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1363018209",
+      "dst": "C1049795740",
+      "amount": 9299233.0,
+      "step": 354,
+      "edge_attention_weight": 0.0527,
+      "edge_features": {
+        "amount_log": 16.0454,
+        "drain_ratio": 1.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 6.0,
+        "type_is_transfer": 0.0
+      },
+      "is_trigger_edge": true,
+      "is_fraud_predicted": false
+    },
+    {
+      "src": "C1012063401",
+      "dst": "C1049795740",
+      "amount": 206875.39,
+      "step": 354,
+      "edge_attention_weight": 0.1299,
+      "edge_features": {
+        "amount_log": 12.2399,
+        "drain_ratio": 0.0,
+        "src_drained": 1.0,
+        "dst_was_empty": 0.0,
+        "time_gap": 0.0,
+        "type_is_transfer": 1.0
+      },
+      "is_trigger_edge": false,
+      "is_fraud_predicted": false
+    }
+  ],
+  "sink_account": "C1049795740",
+  "pattern": "HUB_AND_SPOKE",
+  "pattern_confidence": 0.95,
+  "structural_evidence": {
+    "convergence_count": 38,
+    "fresh_sender_ratio": 1.0,
+    "mean_drain_ratio": 0.3167,
+    "mules_in_subgraph": 0
+  }
+}
