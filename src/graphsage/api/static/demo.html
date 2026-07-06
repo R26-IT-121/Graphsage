@@ -31,15 +31,16 @@
     background: var(--page); color: var(--ink-1); padding: 20px; font-size: 14px;
   }
   h1 { font-size: 18px; font-weight: 650; }
-  .sub { color: var(--ink-2); margin: 4px 0 16px; }
+  .sub { color: var(--ink-2); margin: 4px 0 16px; max-width: 760px; line-height: 1.45; }
   .layout { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
   .panel {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 10px; padding: 16px;
   }
-  #controls { flex: 0 1 330px; min-width: 280px; }
+  #controls { flex: 0 1 340px; min-width: 290px; }
   #results { flex: 1 1 560px; min-width: 320px; display: none; }
   label { display: block; color: var(--ink-2); font-size: 12px; margin: 10px 0 3px; }
+  label small { color: var(--ink-muted); font-weight: 400; }
   select, input {
     width: 100%; padding: 7px 9px; border: 1px solid var(--grid);
     border-radius: 6px; background: var(--page); color: var(--ink-1); font: inherit;
@@ -51,24 +52,30 @@
   }
   button:hover { background: #256abf; }
   .scenario-desc { color: var(--ink-muted); font-size: 12px; margin-top: 6px; min-height: 30px; }
-  /* Risk banner: status color + icon + label (never color alone) */
   #banner {
     display: flex; align-items: center; gap: 10px; padding: 12px 14px;
-    border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px;
+    border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px;
     font-weight: 650; font-size: 15px;
   }
   #banner .dot { font-size: 18px; }
-  /* Stat tiles */
+  #banner .meta { margin-left: auto; color: var(--ink-2); font-weight: 400; font-size: 12px; }
+  /* Plain-English verdict */
+  #verdict {
+    margin-bottom: 14px; padding: 12px 14px; border-radius: 8px;
+    background: var(--page); border: 1px solid var(--border);
+    line-height: 1.5; color: var(--ink-1);
+  }
+  #verdict b { font-weight: 650; }
   .tiles { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
   .tile {
-    flex: 1 1 100px; background: var(--page); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 12px; min-width: 105px;
+    flex: 1 1 110px; background: var(--page); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; min-width: 110px;
   }
   .tile .v { font-size: 20px; font-weight: 650; }
-  .tile .l { color: var(--ink-muted); font-size: 11px; margin-top: 2px; }
-  /* Graph */
+  .tile .l { color: var(--ink-muted); font-size: 11px; margin-top: 2px; line-height: 1.35; }
   #graphwrap { position: relative; overflow: hidden; border: 1px solid var(--grid); border-radius: 8px; background: var(--surface-1); }
   svg { display: block; width: 100%; height: 520px; }
+  .graph-title { color: var(--ink-2); font-size: 13px; margin: 14px 2px 8px; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 2px 0; font-size: 12px; color: var(--ink-2); }
   .legend span::before { content: "●"; margin-right: 4px; }
   .lg-mule::before { color: var(--role-mule); } .lg-fresh::before { color: var(--role-fresh); }
@@ -78,50 +85,54 @@
     position: absolute; pointer-events: none; display: none; z-index: 5;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
     padding: 8px 10px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.18);
-    max-width: 240px;
+    max-width: 250px; line-height: 1.4;
   }
   #tooltip b { display: block; margin-bottom: 2px; }
   #tooltip .m { color: var(--ink-2); }
-  /* Table view (relief rule for low-contrast hues) */
   details { margin-top: 12px; }
   summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  .explain { color: var(--ink-2); font-size: 13px; line-height: 1.55; padding: 10px 4px 0; max-width: 700px; }
+  .explain dt { font-weight: 600; color: var(--ink-1); margin-top: 8px; }
   table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 12px; }
   th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); }
   th { color: var(--ink-muted); font-weight: 600; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   #errbox {
     display: none; margin-bottom: 12px; padding: 12px 14px; border-radius: 8px;
-    border: 1px solid var(--status-critical); color: var(--ink-1); font-size: 13px;
+    border: 1px solid var(--status-critical); background: var(--surface-1); font-size: 13px;
+    line-height: 1.5;
   }
   #errbox b { color: var(--status-critical); }
   .overflow { overflow-x: auto; }
 </style>
 </head>
 <body>
-<h1>Edge-Enhanced GraphSAGE — Relational Fraud Detector</h1>
-<p class="sub">Live demo: submit a transaction &rarr; validated &rarr; scored &rarr; suspicious subgraph extracted (k=2 mule ring)</p>
+<h1>DeepSentinel — Network Fraud Analysis</h1>
+<p class="sub">Enter a transaction (or pick an example) and the graph model checks the money network
+around it: who sent funds to whom, whether senders are brand-new accounts, and whether the
+receiving account behaves like a collection point for stolen money (a “mule”).</p>
 
 <div class="layout">
   <div class="panel" id="controls">
-    <label for="scenario">Demo scenario</label>
+    <label for="scenario">Example transactions</label>
     <select id="scenario"></select>
     <div class="scenario-desc" id="scenario-desc"></div>
     <div class="grid2">
-      <div><label>transaction_id</label><input id="f_transaction_id"></div>
-      <div><label>step</label><input id="f_step" type="number"></div>
-      <div><label>type</label>
+      <div><label>Transaction ID <small>(transaction_id)</small></label><input id="f_transaction_id"></div>
+      <div><label>Hour <small>(step)</small></label><input id="f_step" type="number"></div>
+      <div><label>Type <small>(type)</small></label>
         <select id="f_type">
           <option>TRANSFER</option><option>CASH_OUT</option><option>CASH_IN</option>
           <option>PAYMENT</option><option>DEBIT</option>
         </select></div>
-      <div><label>amount</label><input id="f_amount" type="number" step="0.01"></div>
-      <div><label>nameOrig</label><input id="f_nameOrig"></div>
-      <div><label>nameDest</label><input id="f_nameDest"></div>
-      <div><label>oldbalanceOrg</label><input id="f_oldbalanceOrg" type="number" step="0.01"></div>
-      <div><label>newbalanceOrig</label><input id="f_newbalanceOrig" type="number" step="0.01"></div>
-      <div><label>oldbalanceDest</label><input id="f_oldbalanceDest" type="number" step="0.01"></div>
-      <div><label>newbalanceDest</label><input id="f_newbalanceDest" type="number" step="0.01"></div>
-      <div><label>isFlaggedFraud</label><input id="f_isFlaggedFraud" type="number" min="0" max="1"></div>
+      <div><label>Amount <small>(amount)</small></label><input id="f_amount" type="number" step="0.01"></div>
+      <div><label>Sender account <small>(nameOrig)</small></label><input id="f_nameOrig"></div>
+      <div><label>Receiver account <small>(nameDest)</small></label><input id="f_nameDest"></div>
+      <div><label>Sender balance before <small>(oldbalanceOrg)</small></label><input id="f_oldbalanceOrg" type="number" step="0.01"></div>
+      <div><label>Sender balance after <small>(newbalanceOrig)</small></label><input id="f_newbalanceOrig" type="number" step="0.01"></div>
+      <div><label>Receiver balance before <small>(oldbalanceDest)</small></label><input id="f_oldbalanceDest" type="number" step="0.01"></div>
+      <div><label>Receiver balance after <small>(newbalanceDest)</small></label><input id="f_newbalanceDest" type="number" step="0.01"></div>
+      <div><label>Old rule flag <small>(isFlaggedFraud)</small></label><input id="f_isFlaggedFraud" type="number" min="0" max="1"></div>
     </div>
     <button id="analyze">Analyze transaction</button>
   </div>
@@ -130,19 +141,30 @@
     <div id="errbox"></div>
     <div class="panel" id="results">
       <div id="banner"></div>
+      <div id="verdict"></div>
       <div class="tiles" id="tiles"></div>
+      <div class="graph-title" id="graph-title"></div>
       <div id="graphwrap">
         <svg id="graph"></svg>
         <div id="tooltip"></div>
       </div>
-      <div class="legend">
-        <span class="lg-mule">Mule (sink)</span><span class="lg-fresh">Fresh sender</span>
-        <span class="lg-relay">Relay</span><span class="lg-trigger">Trigger participant</span>
-        <span class="lg-legit">Legitimate</span>
-        <span style="margin-left:auto">edge width = attention weight &middot; dashed = trigger</span>
-      </div>
+      <div class="legend" id="legend"></div>
       <details>
-        <summary>Accounts table</summary>
+        <summary>How do I read this picture?</summary>
+        <dl class="explain">
+          <dt>Circles are bank accounts, arrows are money moving between them.</dt>
+          <dd>Bigger circles moved money more often. Thicker arrows are transactions the
+          model paid more attention to. The dashed arrow is the transaction you submitted.</dd>
+          <dt>Why do I see other accounts, not just my two?</dt>
+          <dd>Fraud rings only become visible in context: the model walks two steps outward
+          from your transaction and shows everyone connected to it.</dd>
+          <dt>What is a “suspected mule”?</dt>
+          <dd>An account that collects money from many (often brand-new) senders and empties
+          out fast — the classic cash-collection point of organized fraud.</dd>
+        </dl>
+      </details>
+      <details>
+        <summary>Accounts table (all details)</summary>
         <div class="overflow"><table id="nodetable"></table></div>
       </details>
     </div>
@@ -158,20 +180,45 @@ const ROLE_COLOR = () => ({
   LEGITIMATE: css("--role-legit"),
 });
 const STATUS = () => ({
-  LOW:            { c: css("--status-good"),     icon: "✓", text: "LOW RISK" },
-  MEDIUM:         { c: css("--status-warn"),     icon: "◐", text: "MEDIUM RISK" },
-  HIGH:           { c: css("--status-serious"),  icon: "▲", text: "HIGH RISK" },
-  CRITICAL:       { c: css("--status-critical"), icon: "⬤", text: "CRITICAL RISK" },
-  NOT_APPLICABLE: { c: css("--ink-muted"),       icon: "—", text: "NOT APPLICABLE" },
+  LOW:            { c: css("--status-good"),     icon: "✓", text: "LOW RISK — looks normal" },
+  MEDIUM:         { c: css("--status-warn"),     icon: "◐", text: "MEDIUM RISK — worth a look" },
+  HIGH:           { c: css("--status-serious"),  icon: "▲", text: "HIGH RISK — investigate" },
+  CRITICAL:       { c: css("--status-critical"), icon: "⬤", text: "CRITICAL — likely fraud" },
+  NOT_APPLICABLE: { c: css("--ink-muted"),       icon: "—", text: "NOT CHECKED — outside model scope" },
 });
 const FIELDS = ["transaction_id","step","type","amount","nameOrig","nameDest",
   "oldbalanceOrg","newbalanceOrig","oldbalanceDest","newbalanceDest","isFlaggedFraud"];
 const NUMERIC = new Set(["step","amount","oldbalanceOrg","newbalanceOrig",
   "oldbalanceDest","newbalanceDest","isFlaggedFraud"]);
+const PATTERN_PLAIN = {
+  HUB_AND_SPOKE: "many senders funneling into one receiver",
+  SMURFING: "many similar-sized payments split to avoid attention",
+  LAYERING: "money hopping through in-between accounts to hide its origin",
+  ACCOUNT_TAKEOVER: "an account emptied in one move into a quiet destination",
+  UNKNOWN: "no recognizable shape",
+};
 
 let scenarios = [];
+let riskThreshold = 0.84; // refined from /health at load
+
+// Role naming is threshold-aware: nobody is called a mule unless the model
+// actually flags them — for low-risk rings the same topology gets neutral names.
+function roleName(role, flagged) {
+  const names = {
+    MULE_CENTRAL: flagged ? "Suspected mule (collection point)" : "Main receiver",
+    FRESH_SENDER: "Brand-new sender",
+    RELAY: "Pass-through account",
+    TRIGGER_PARTICIPANT: "Part of this transaction",
+    LEGITIMATE: "Ordinary account",
+  };
+  return names[role] || role;
+}
 
 async function loadScenarios() {
+  try {
+    const h = await (await fetch("/health")).json();
+    if (h.tuned_threshold) riskThreshold = h.tuned_threshold;
+  } catch (e) { /* keep default */ }
   const res = await fetch("/api/graph/demo-transactions");
   scenarios = (await res.json()).scenarios;
   const sel = document.getElementById("scenario");
@@ -179,24 +226,6 @@ async function loadScenarios() {
   sel.onchange = () => fillForm(+sel.value);
   fillForm(0);
   applyDeepLink();
-}
-
-// Deep-link support so the DeepSentinel dashboard can open an investigation
-// directly: /demo?nameOrig=C123&nameDest=C456&step=700&amount=5000&autorun=1
-function applyDeepLink() {
-  const q = new URLSearchParams(location.search);
-  let any = false;
-  for (const f of FIELDS) {
-    if (q.has(f)) { document.getElementById("f_" + f).value = q.get(f); any = true; }
-  }
-  if (any && q.has("nameOrig") && q.has("nameDest")) {
-    if (!q.has("transaction_id"))
-      document.getElementById("f_transaction_id").value =
-        "TX_LINKED_" + q.get("nameOrig") + "_" + q.get("nameDest");
-    document.getElementById("scenario-desc").textContent =
-      "Loaded from link" + (q.get("autorun") ? " — analyzing…" : "");
-    if (q.get("autorun")) document.getElementById("analyze").click();
-  }
 }
 function fillForm(i) {
   const s = scenarios[i];
@@ -212,6 +241,23 @@ function readForm() {
   return body;
 }
 
+// Deep-link: /demo?nameOrig=C123&nameDest=C456&step=700&autorun=1
+function applyDeepLink() {
+  const q = new URLSearchParams(location.search);
+  let any = false;
+  for (const f of FIELDS) {
+    if (q.has(f)) { document.getElementById("f_" + f).value = q.get(f); any = true; }
+  }
+  if (any && q.has("nameOrig") && q.has("nameDest")) {
+    if (!q.has("transaction_id"))
+      document.getElementById("f_transaction_id").value =
+        "TX_LINKED_" + q.get("nameOrig") + "_" + q.get("nameDest");
+    document.getElementById("scenario-desc").textContent =
+      "Loaded from link" + (q.get("autorun") ? " — analyzing…" : "");
+    if (q.get("autorun")) document.getElementById("analyze").click();
+  }
+}
+
 document.getElementById("analyze").onclick = async () => {
   const errbox = document.getElementById("errbox");
   const results = document.getElementById("results");
@@ -225,13 +271,43 @@ document.getElementById("analyze").onclick = async () => {
   if (!res.ok) {
     results.style.display = "none";
     errbox.style.display = "block";
-    errbox.innerHTML = `<b>${payload.error} (HTTP ${res.status})</b><br>${payload.message}`;
+    errbox.innerHTML = res.status === 422
+      ? `<b>This transaction was rejected before analysis.</b><br>${payload.message}
+         <br><span style="color:var(--ink-muted)">Every request is validated first —
+         bad data never reaches the model.</span>`
+      : `<b>${payload.error} (HTTP ${res.status})</b><br>${payload.message}`;
     return;
   }
   render(payload);
 };
 
 function tile(v, l) { return `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+
+function plainVerdict(p) {
+  const sg = p.suspicious_subgraph;
+  const dest = p.input_transaction.nameDest;
+  const pct = Math.round(p.relational_risk_score * 1000) / 10;
+  if (p.risk_level === "NOT_APPLICABLE")
+    return `This is a <b>${p.input_transaction.type}</b> transaction. In this dataset fraud
+      only ever happens in TRANSFER and CASH_OUT, so the network model doesn't score it.`;
+  const ev = sg ? sg.structural_evidence : null;
+  const shape = sg ? PATTERN_PLAIN[sg.pattern] : "no surrounding activity";
+  if (p.risk_level === "LOW")
+    return `Receiving account <b>${dest}</b> scores riskier than only <b>${pct}%</b> of all
+      receiving accounts — the model sees it as safe. The picture below shows its normal
+      network of counterparties (${shape}) so you can verify nothing looks off.`;
+  const fresh = ev && ev.convergence_count > 1
+    ? ` <b>${ev.convergence_count}</b> different senders pay into it` +
+      (ev.fresh_sender_ratio >= 0.5
+        ? `, and <b>${Math.round(ev.fresh_sender_ratio * 100)}%</b> of them are brand-new
+           accounts with no history — a classic sign of a coordinated ring.` : ".")
+    : "";
+  return `Receiving account <b>${dest}</b> scores riskier than <b>${pct}%</b> of all receiving
+    accounts. The network around it shows <b>${shape}</b>.${fresh}
+    ${sg && sg.structural_evidence.mules_in_subgraph > 0
+      ? ` The model flags <b>${sg.structural_evidence.mules_in_subgraph}</b> account(s) in this
+         picture as suspected mules.` : ""}`;
+}
 
 function render(p) {
   const results = document.getElementById("results");
@@ -241,35 +317,56 @@ function render(p) {
   banner.style.borderColor = st.c;
   banner.innerHTML = `<span class="dot" style="color:${st.c}">${st.icon}</span>
     <span>${st.text}</span>
-    <span style="margin-left:auto;color:var(--ink-2);font-weight:400">
-      ${p.transaction_id} &middot; ${p.stage} &middot; ${p.metadata.inference_latency_ms} ms</span>`;
+    <span class="meta">${p.transaction_id} · answered in ${p.metadata.inference_latency_ms} ms</span>`;
+
+  document.getElementById("verdict").innerHTML = plainVerdict(p);
 
   const sg = p.suspicious_subgraph;
+  const suspicious = sg && sg.structural_evidence.mules_in_subgraph > 0;
   const tiles = document.getElementById("tiles");
   tiles.innerHTML =
-    tile(p.relational_risk_score.toFixed(3), "relational risk score") +
-    tile(p.confidence.toFixed(2), "confidence") +
-    (sg ? tile(sg.pattern.replace(/_/g, " "), `pattern &middot; conf ${sg.pattern_confidence}`) : "") +
-    (sg ? tile(sg.node_count + " / " + sg.edge_count, "accounts / transactions") : "") +
-    (sg ? tile(sg.structural_evidence.convergence_count, "senders converging on sink") : "") +
-    (sg ? tile((sg.structural_evidence.fresh_sender_ratio * 100).toFixed(0) + "%", "fresh senders") : "");
+    tile((p.relational_risk_score * 100).toFixed(1) + "%",
+         "risk percentile — share of accounts this one out-scores") +
+    (sg ? tile(sg.node_count, "accounts in the surrounding network") : "") +
+    (sg ? tile(sg.edge_count, "transactions between them") : "") +
+    (sg && sg.structural_evidence.convergence_count > 1
+      ? tile(sg.structural_evidence.convergence_count, "senders paying into the receiver") : "") +
+    (sg && suspicious
+      ? tile(Math.round(sg.structural_evidence.fresh_sender_ratio * 100) + "%",
+             "of those senders are brand-new accounts") : "");
 
   const svg = document.getElementById("graph");
   svg.innerHTML = "";
   document.getElementById("nodetable").innerHTML = "";
+  const show = sg ? "" : "none";
   document.getElementById("graphwrap").style.display = sg ? "block" : "none";
-  document.querySelector(".legend").style.display = sg ? "flex" : "none";
-  document.querySelector("details").style.display = sg ? "block" : "none";
-  if (sg) { drawGraph(sg); fillTable(sg); }
+  document.getElementById("graph-title").style.display = show;
+  document.getElementById("legend").style.display = sg ? "flex" : "none";
+  document.querySelectorAll("details").forEach(d => d.style.display = show);
+  if (!sg) return;
+
+  document.getElementById("graph-title").textContent = suspicious
+    ? "The suspected fraud ring — two steps of money flow around your transaction:"
+    : "The (normal-looking) money network around your transaction:";
+  document.getElementById("legend").innerHTML =
+    `<span class="lg-mule">${suspicious ? "Suspected mule" : "Main receiver"}</span>
+     <span class="lg-fresh">Brand-new sender</span>
+     <span class="lg-relay">Pass-through</span>
+     <span class="lg-trigger">Your transaction's accounts</span>
+     <span class="lg-legit">Ordinary account</span>
+     <span style="margin-left:auto">thicker arrow = more model attention · dashed = your transaction</span>`;
+  drawGraph(sg);
+  fillTable(sg);
 }
 
 function fillTable(sg) {
   const t = document.getElementById("nodetable");
-  t.innerHTML = `<tr><th>account</th><th>role</th><th class="num">risk</th>
-    <th class="num">in</th><th class="num">out</th><th class="num">received</th></tr>` +
+  t.innerHTML = `<tr><th>account</th><th>role</th><th class="num">risk percentile</th>
+    <th class="num">payments in</th><th class="num">payments out</th><th class="num">total received</th></tr>` +
     sg.nodes.slice().sort((a, b) => b.node_risk_score - a.node_risk_score).map(n =>
-      `<tr><td>${n.account_id}</td><td>${n.role.replace(/_/g, " ")}</td>
-       <td class="num">${n.node_risk_score.toFixed(3)}</td>
+      `<tr><td>${n.account_id}</td>
+       <td>${roleName(n.role, n.node_risk_score >= riskThreshold)}</td>
+       <td class="num">${(n.node_risk_score * 100).toFixed(1)}%</td>
        <td class="num">${n.in_degree}</td><td class="num">${n.out_degree}</td>
        <td class="num">${n.total_received_amount.toLocaleString()}</td></tr>`).join("");
 }
@@ -347,14 +444,15 @@ function drawGraph(sg) {
     });
     attachTip(line, `<b>${e.src} &rarr; ${e.dst}</b>
       <span class="m">amount</span> ${e.amount.toLocaleString()}<br>
-      <span class="m">step</span> ${e.step} &middot;
-      <span class="m">attention</span> ${e.edge_attention_weight}<br>
-      <span class="m">drain ratio</span> ${e.edge_features.drain_ratio}
-      ${e.is_trigger_edge ? "<br><b>TRIGGER TRANSACTION</b>" : ""}`);
+      <span class="m">hour</span> ${e.step} ·
+      <span class="m">model attention</span> ${Math.round(e.edge_attention_weight * 100)}%<br>
+      <span class="m">share of sender's balance</span> ${Math.round(e.edge_features.drain_ratio * 100)}%
+      ${e.is_trigger_edge ? "<br><b>YOUR TRANSACTION</b>" : ""}`);
     svg.appendChild(line);
   }
 
   for (const n of N) {
+    const flagged = n.node_risk_score >= riskThreshold;
     const g = mk("g", {});
     if (n.account_id === sg.sink_account) {
       g.appendChild(mk("circle", {
@@ -367,11 +465,11 @@ function drawGraph(sg) {
       stroke: css("--surface-1"), "stroke-width": 2,
     });
     attachTip(c, `<b>${n.account_id}</b>
-      <span class="m">role</span> ${n.role.replace(/_/g, " ")}<br>
-      <span class="m">risk score</span> ${n.node_risk_score}<br>
-      <span class="m">in / out</span> ${n.in_degree} / ${n.out_degree}<br>
-      <span class="m">received</span> ${n.total_received_amount.toLocaleString()}
-      ${n.fraud_count_received ? `<br><span class="m">fraud received</span> ${n.fraud_count_received}` : ""}`);
+      <span class="m">${roleName(n.role, flagged)}</span><br>
+      <span class="m">risk percentile</span> ${(n.node_risk_score * 100).toFixed(1)}%<br>
+      <span class="m">payments in / out</span> ${n.in_degree} / ${n.out_degree}<br>
+      <span class="m">total received</span> ${n.total_received_amount.toLocaleString()}
+      ${n.fraud_count_received ? `<br><span class="m">known fraud received</span> ${n.fraud_count_received}` : ""}`);
     g.appendChild(c);
     if (n.account_id === sg.sink_account || n.role === "RELAY") {
       g.appendChild(mk("text", {
@@ -390,7 +488,7 @@ function attachTip(el, html) {
     const r = wrap.getBoundingClientRect();
     tip.innerHTML = html;
     tip.style.display = "block";
-    tip.style.left = Math.min(ev.clientX - r.left + 14, r.width - 250) + "px";
+    tip.style.left = Math.min(ev.clientX - r.left + 14, r.width - 260) + "px";
     tip.style.top = (ev.clientY - r.top + 12) + "px";
   });
   el.addEventListener("mouseleave", () => tip.style.display = "none");
