@@ -178,6 +178,25 @@ async function loadScenarios() {
   scenarios.forEach((s, i) => sel.add(new Option(s.label, i)));
   sel.onchange = () => fillForm(+sel.value);
   fillForm(0);
+  applyDeepLink();
+}
+
+// Deep-link support so the DeepSentinel dashboard can open an investigation
+// directly: /demo?nameOrig=C123&nameDest=C456&step=700&amount=5000&autorun=1
+function applyDeepLink() {
+  const q = new URLSearchParams(location.search);
+  let any = false;
+  for (const f of FIELDS) {
+    if (q.has(f)) { document.getElementById("f_" + f).value = q.get(f); any = true; }
+  }
+  if (any && q.has("nameOrig") && q.has("nameDest")) {
+    if (!q.has("transaction_id"))
+      document.getElementById("f_transaction_id").value =
+        "TX_LINKED_" + q.get("nameOrig") + "_" + q.get("nameDest");
+    document.getElementById("scenario-desc").textContent =
+      "Loaded from link" + (q.get("autorun") ? " — analyzing…" : "");
+    if (q.get("autorun")) document.getElementById("analyze").click();
+  }
 }
 function fillForm(i) {
   const s = scenarios[i];

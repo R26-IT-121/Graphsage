@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 
@@ -54,6 +55,15 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
     """App factory. Tests inject a predictor built on a synthetic graph."""
     app = FastAPI(title="GraphSAGE Relational Fraud Detector", version=MODEL_VERSION)
     app.state.predictor = predictor
+
+    # The DeepSentinel dashboard (Member 4) calls this service from another
+    # origin; contract §1 declares an internal trusted network with no auth.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
 
     @app.on_event("startup")
     def load_predictor() -> None:
