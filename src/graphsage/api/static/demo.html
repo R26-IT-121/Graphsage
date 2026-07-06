@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GraphSAGE Fraud Detector — Live Demo</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --ink-1: #0b0b0b; --ink-2: #52514e; --ink-muted: #898781;
+    --grid: #e1e0d9; --border: rgba(11,11,11,0.10);
+    --role-mule: #e34948; --role-fresh: #eda100; --role-relay: #4a3aa7;
+    --role-trigger: #1baf7a; --role-legit: #898781;
+    --status-good: #0ca30c; --status-warn: #fab219;
+    --status-serious: #ec835a; --status-critical: #d03b3b;
+    --edge-ink: #c3c2b7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --ink-1: #ffffff; --ink-2: #c3c2b7; --ink-muted: #898781;
+      --grid: #2c2c2a; --border: rgba(255,255,255,0.10);
+      --role-mule: #e66767; --role-fresh: #c98500; --role-relay: #9085e9;
+      --role-trigger: #199e70; --role-legit: #898781;
+      --edge-ink: #383835;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink-1); padding: 20px; font-size: 14px;
+  }
+  h1 { font-size: 18px; font-weight: 650; }
+  .sub { color: var(--ink-2); margin: 4px 0 16px; }
+  .layout { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  #controls { flex: 0 1 330px; min-width: 280px; }
+  #results { flex: 1 1 560px; min-width: 320px; display: none; }
+  label { display: block; color: var(--ink-2); font-size: 12px; margin: 10px 0 3px; }
+  select, input {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--grid);
+    border-radius: 6px; background: var(--page); color: var(--ink-1); font: inherit;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  button {
+    margin-top: 14px; width: 100%; padding: 10px; border: 0; border-radius: 8px;
+    background: #2a78d6; color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: #256abf; }
+  .scenario-desc { color: var(--ink-muted); font-size: 12px; margin-top: 6px; min-height: 30px; }
+  /* Risk banner: status color + icon + label (never color alone) */
+  #banner {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px;
+    font-weight: 650; font-size: 15px;
+  }
+  #banner .dot { font-size: 18px; }
+  /* Stat tiles */
+  .tiles { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tile {
+    flex: 1 1 100px; background: var(--page); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; min-width: 105px;
+  }
+  .tile .v { font-size: 20px; font-weight: 650; }
+  .tile .l { color: var(--ink-muted); font-size: 11px; margin-top: 2px; }
+  /* Graph */
+  #graphwrap { position: relative; overflow: hidden; border: 1px solid var(--grid); border-radius: 8px; background: var(--surface-1); }
+  svg { display: block; width: 100%; height: 520px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 2px 0; font-size: 12px; color: var(--ink-2); }
+  .legend span::before { content: "●"; margin-right: 4px; }
+  .lg-mule::before { color: var(--role-mule); } .lg-fresh::before { color: var(--role-fresh); }
+  .lg-relay::before { color: var(--role-relay); } .lg-trigger::before { color: var(--role-trigger); }
+  .lg-legit::before { color: var(--role-legit); }
+  #tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.18);
+    max-width: 240px;
+  }
+  #tooltip b { display: block; margin-bottom: 2px; }
+  #tooltip .m { color: var(--ink-2); }
+  /* Table view (relief rule for low-contrast hues) */
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 12px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink-muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  #errbox {
+    display: none; margin-bottom: 12px; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--status-critical); color: var(--ink-1); font-size: 13px;
+  }
+  #errbox b { color: var(--status-critical); }
+  .overflow { overflow-x: auto; }
+</style>
+</head>
+<body>
+<h1>Edge-Enhanced GraphSAGE — Relational Fraud Detector</h1>
+<p class="sub">Live demo: submit a transaction &rarr; validated &rarr; scored &rarr; suspicious subgraph extracted (k=2 mule ring)</p>
+
+<div class="layout">
+  <div class="panel" id="controls">
+    <label for="scenario">Demo scenario</label>
+    <select id="scenario"></select>
+    <div class="scenario-desc" id="scenario-desc"></div>
+    <div class="grid2">
+      <div><label>transaction_id</label><input id="f_transaction_id"></div>
+      <div><label>step</label><input id="f_step" type="number"></div>
+      <div><label>type</label>
+        <select id="f_type">
+          <option>TRANSFER</option><option>CASH_OUT</option><option>CASH_IN</option>
+          <option>PAYMENT</option><option>DEBIT</option>
+        </select></div>
+      <div><label>amount</label><input id="f_amount" type="number" step="0.01"></div>
+      <div><label>nameOrig</label><input id="f_nameOrig"></div>
+      <div><label>nameDest</label><input id="f_nameDest"></div>
+      <div><label>oldbalanceOrg</label><input id="f_oldbalanceOrg" type="number" step="0.01"></div>
+      <div><label>newbalanceOrig</label><input id="f_newbalanceOrig" type="number" step="0.01"></div>
+      <div><label>oldbalanceDest</label><input id="f_oldbalanceDest" type="number" step="0.01"></div>
+      <div><label>newbalanceDest</label><input id="f_newbalanceDest" type="number" step="0.01"></div>
+      <div><label>isFlaggedFraud</label><input id="f_isFlaggedFraud" type="number" min="0" max="1"></div>
+    </div>
+    <button id="analyze">Analyze transaction</button>
+  </div>
+
+  <div style="flex:1 1 560px; min-width:320px">
+    <div id="errbox"></div>
+    <div class="panel" id="results">
+      <div id="banner"></div>
+      <div class="tiles" id="tiles"></div>
+      <div id="graphwrap">
+        <svg id="graph"></svg>
+        <div id="tooltip"></div>
+      </div>
+      <div class="legend">
+        <span class="lg-mule">Mule (sink)</span><span class="lg-fresh">Fresh sender</span>
+        <span class="lg-relay">Relay</span><span class="lg-trigger">Trigger participant</span>
+        <span class="lg-legit">Legitimate</span>
+        <span style="margin-left:auto">edge width = attention weight &middot; dashed = trigger</span>
+      </div>
+      <details>
+        <summary>Accounts table</summary>
+        <div class="overflow"><table id="nodetable"></table></div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const ROLE_COLOR = () => ({
+  MULE_CENTRAL: css("--role-mule"), FRESH_SENDER: css("--role-fresh"),
+  RELAY: css("--role-relay"), TRIGGER_PARTICIPANT: css("--role-trigger"),
+  LEGITIMATE: css("--role-legit"),
+});
+const STATUS = () => ({
+  LOW:            { c: css("--status-good"),     icon: "✓", text: "LOW RISK" },
+  MEDIUM:         { c: css("--status-warn"),     icon: "◐", text: "MEDIUM RISK" },
+  HIGH:           { c: css("--status-serious"),  icon: "▲", text: "HIGH RISK" },
+  CRITICAL:       { c: css("--status-critical"), icon: "⬤", text: "CRITICAL RISK" },
+  NOT_APPLICABLE: { c: css("--ink-muted"),       icon: "—", text: "NOT APPLICABLE" },
+});
+const FIELDS = ["transaction_id","step","type","amount","nameOrig","nameDest",
+  "oldbalanceOrg","newbalanceOrig","oldbalanceDest","newbalanceDest","isFlaggedFraud"];
+const NUMERIC = new Set(["step","amount","oldbalanceOrg","newbalanceOrig",
+  "oldbalanceDest","newbalanceDest","isFlaggedFraud"]);
+
+let scenarios = [];
+
+async function loadScenarios() {
+  const res = await fetch("/api/graph/demo-transactions");
+  scenarios = (await res.json()).scenarios;
+  const sel = document.getElementById("scenario");
+  scenarios.forEach((s, i) => sel.add(new Option(s.label, i)));
+  sel.onchange = () => fillForm(+sel.value);
+  fillForm(0);
+}
+function fillForm(i) {
+  const s = scenarios[i];
+  document.getElementById("scenario-desc").textContent = s.description;
+  for (const f of FIELDS) document.getElementById("f_" + f).value = s.request[f];
+}
+function readForm() {
+  const body = {};
+  for (const f of FIELDS) {
+    const v = document.getElementById("f_" + f).value;
+    body[f] = NUMERIC.has(f) ? Number(v) : v;
+  }
+  return body;
+}
+
+document.getElementById("analyze").onclick = async () => {
+  const errbox = document.getElementById("errbox");
+  const results = document.getElementById("results");
+  errbox.style.display = "none";
+  const res = await fetch("/api/graph/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(readForm()),
+  });
+  const payload = await res.json();
+  if (!res.ok) {
+    results.style.display = "none";
+    errbox.style.display = "block";
+    errbox.innerHTML = `<b>${payload.error} (HTTP ${res.status})</b><br>${payload.message}`;
+    return;
+  }
+  render(payload);
+};
+
+function tile(v, l) { return `<div class="tile"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+
+function render(p) {
+  const results = document.getElementById("results");
+  results.style.display = "block";
+  const st = STATUS()[p.risk_level];
+  const banner = document.getElementById("banner");
+  banner.style.borderColor = st.c;
+  banner.innerHTML = `<span class="dot" style="color:${st.c}">${st.icon}</span>
+    <span>${st.text}</span>
+    <span style="margin-left:auto;color:var(--ink-2);font-weight:400">
+      ${p.transaction_id} &middot; ${p.stage} &middot; ${p.metadata.inference_latency_ms} ms</span>`;
+
+  const sg = p.suspicious_subgraph;
+  const tiles = document.getElementById("tiles");
+  tiles.innerHTML =
+    tile(p.relational_risk_score.toFixed(3), "relational risk score") +
+    tile(p.confidence.toFixed(2), "confidence") +
+    (sg ? tile(sg.pattern.replace(/_/g, " "), `pattern &middot; conf ${sg.pattern_confidence}`) : "") +
+    (sg ? tile(sg.node_count + " / " + sg.edge_count, "accounts / transactions") : "") +
+    (sg ? tile(sg.structural_evidence.convergence_count, "senders converging on sink") : "") +
+    (sg ? tile((sg.structural_evidence.fresh_sender_ratio * 100).toFixed(0) + "%", "fresh senders") : "");
+
+  const svg = document.getElementById("graph");
+  svg.innerHTML = "";
+  document.getElementById("nodetable").innerHTML = "";
+  document.getElementById("graphwrap").style.display = sg ? "block" : "none";
+  document.querySelector(".legend").style.display = sg ? "flex" : "none";
+  document.querySelector("details").style.display = sg ? "block" : "none";
+  if (sg) { drawGraph(sg); fillTable(sg); }
+}
+
+function fillTable(sg) {
+  const t = document.getElementById("nodetable");
+  t.innerHTML = `<tr><th>account</th><th>role</th><th class="num">risk</th>
+    <th class="num">in</th><th class="num">out</th><th class="num">received</th></tr>` +
+    sg.nodes.slice().sort((a, b) => b.node_risk_score - a.node_risk_score).map(n =>
+      `<tr><td>${n.account_id}</td><td>${n.role.replace(/_/g, " ")}</td>
+       <td class="num">${n.node_risk_score.toFixed(3)}</td>
+       <td class="num">${n.in_degree}</td><td class="num">${n.out_degree}</td>
+       <td class="num">${n.total_received_amount.toLocaleString()}</td></tr>`).join("");
+}
+
+/* ------- force-directed layout (plain JS, O(n^2) fine for <=200 nodes) ------- */
+function drawGraph(sg) {
+  const svg = document.getElementById("graph");
+  const W = svg.clientWidth || 700, H = 520;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const colors = ROLE_COLOR();
+
+  const idx = {}; sg.nodes.forEach((n, i) => idx[n.account_id] = i);
+  const N = sg.nodes.map((n, i) => ({
+    ...n, i,
+    x: W / 2 + 180 * Math.cos(2 * Math.PI * i / sg.nodes.length),
+    y: H / 2 + 180 * Math.sin(2 * Math.PI * i / sg.nodes.length),
+    vx: 0, vy: 0,
+    r: Math.max(6, Math.min(22, 5 + 2.2 * Math.sqrt(n.in_degree + n.out_degree))),
+  }));
+  const sink = N.find(n => n.account_id === sg.sink_account);
+  if (sink) { sink.x = W / 2; sink.y = H / 2; }
+  const E = sg.edges.map(e => ({ ...e, s: idx[e.src], t: idx[e.dst] }));
+
+  for (let it = 0; it < 320; it++) {
+    const k = it < 40 ? 0.9 : 0.5;
+    for (let a = 0; a < N.length; a++) for (let b = a + 1; b < N.length; b++) {
+      let dx = N[b].x - N[a].x, dy = N[b].y - N[a].y;
+      let d2 = dx * dx + dy * dy || 1, d = Math.sqrt(d2);
+      const rep = 2600 / d2;
+      dx /= d; dy /= d;
+      N[a].vx -= dx * rep * k; N[a].vy -= dy * rep * k;
+      N[b].vx += dx * rep * k; N[b].vy += dy * rep * k;
+    }
+    for (const e of E) {
+      const a = N[e.s], b = N[e.t];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      const f = (d - 90) * 0.02 * k;
+      dx /= d; dy /= d;
+      a.vx += dx * f * d * 0.01 * 5; a.vy += dy * f * d * 0.01 * 5;
+      b.vx -= dx * f * d * 0.01 * 5; b.vy -= dy * f * d * 0.01 * 5;
+    }
+    for (const n of N) {
+      n.vx += (W / 2 - n.x) * 0.004; n.vy += (H / 2 - n.y) * 0.004;
+      n.x += Math.max(-8, Math.min(8, n.vx)); n.y += Math.max(-8, Math.min(8, n.vy));
+      n.vx *= 0.55; n.vy *= 0.55;
+      n.x = Math.max(n.r + 2, Math.min(W - n.r - 2, n.x));
+      n.y = Math.max(n.r + 2, Math.min(H - n.r - 2, n.y));
+    }
+    if (sink && it < 200) { sink.x = W / 2; sink.y = H / 2; }
+  }
+
+  const ns = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+  svg.appendChild(mk("defs", {})).innerHTML =
+    `<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6"
+      markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="${css("--edge-ink")}"/></marker>`;
+
+  for (const e of E) {
+    const a = N[e.s], b = N[e.t];
+    const d = Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2) || 1;
+    const ux = (b.x - a.x) / d, uy = (b.y - a.y) / d;
+    const line = mk("line", {
+      x1: a.x + ux * a.r, y1: a.y + uy * a.r,
+      x2: b.x - ux * (b.r + 4), y2: b.y - uy * (b.r + 4),
+      stroke: css("--edge-ink"),
+      "stroke-width": Math.max(1, 1 + 4 * e.edge_attention_weight),
+      "marker-end": "url(#arrow)",
+      ...(e.is_trigger_edge ? { "stroke-dasharray": "6 4", stroke: css("--role-mule") } : {}),
+    });
+    attachTip(line, `<b>${e.src} &rarr; ${e.dst}</b>
+      <span class="m">amount</span> ${e.amount.toLocaleString()}<br>
+      <span class="m">step</span> ${e.step} &middot;
+      <span class="m">attention</span> ${e.edge_attention_weight}<br>
+      <span class="m">drain ratio</span> ${e.edge_features.drain_ratio}
+      ${e.is_trigger_edge ? "<br><b>TRIGGER TRANSACTION</b>" : ""}`);
+    svg.appendChild(line);
+  }
+
+  for (const n of N) {
+    const g = mk("g", {});
+    if (n.account_id === sg.sink_account) {
+      g.appendChild(mk("circle", {
+        cx: n.x, cy: n.y, r: n.r + 4, fill: "none",
+        stroke: colors.MULE_CENTRAL, "stroke-width": 1.5, "stroke-dasharray": "3 3",
+      }));
+    }
+    const c = mk("circle", {
+      cx: n.x, cy: n.y, r: n.r, fill: colors[n.role] || css("--ink-muted"),
+      stroke: css("--surface-1"), "stroke-width": 2,
+    });
+    attachTip(c, `<b>${n.account_id}</b>
+      <span class="m">role</span> ${n.role.replace(/_/g, " ")}<br>
+      <span class="m">risk score</span> ${n.node_risk_score}<br>
+      <span class="m">in / out</span> ${n.in_degree} / ${n.out_degree}<br>
+      <span class="m">received</span> ${n.total_received_amount.toLocaleString()}
+      ${n.fraud_count_received ? `<br><span class="m">fraud received</span> ${n.fraud_count_received}` : ""}`);
+    g.appendChild(c);
+    if (n.account_id === sg.sink_account || n.role === "RELAY") {
+      g.appendChild(mk("text", {
+        x: n.x, y: n.y - n.r - 6, "text-anchor": "middle",
+        "font-size": 11, fill: css("--ink-2"),
+      })).textContent = n.account_id;
+    }
+    svg.appendChild(g);
+  }
+}
+
+function attachTip(el, html) {
+  const tip = document.getElementById("tooltip");
+  const wrap = document.getElementById("graphwrap");
+  el.addEventListener("mousemove", ev => {
+    const r = wrap.getBoundingClientRect();
+    tip.innerHTML = html;
+    tip.style.display = "block";
+    tip.style.left = Math.min(ev.clientX - r.left + 14, r.width - 250) + "px";
+    tip.style.top = (ev.clientY - r.top + 12) + "px";
+  });
+  el.addEventListener("mouseleave", () => tip.style.display = "none");
+}
+
+loadScenarios();
+</script>
+</body>
+</html>

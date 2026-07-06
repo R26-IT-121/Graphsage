@@ -1,0 +1,89 @@
+{
+  "scenarios": [
+    {
+      "label": "Fraud ring (hub-and-spoke)",
+      "description": "Many senders converging on one mule sink \u2014 expect CRITICAL/HIGH with a large subgraph",
+      "request": {
+        "transaction_id": "TX_DEMO_HUB_001",
+        "step": 34,
+        "type": "CASH_OUT",
+        "amount": 865948.81,
+        "nameOrig": "C2109818783",
+        "nameDest": "C197117096",
+        "oldbalanceOrg": 865948.81,
+        "newbalanceOrig": 0.0,
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 865948.81,
+        "isFlaggedFraud": 0
+      }
+    },
+    {
+      "label": "Account takeover",
+      "description": "Victim account fully drained into a quiet destination \u2014 expect elevated risk, small subgraph",
+      "request": {
+        "transaction_id": "TX_DEMO_ATO_002",
+        "step": 19,
+        "type": "CASH_OUT",
+        "amount": 143660.14,
+        "nameOrig": "C681501417",
+        "nameDest": "C447183071",
+        "oldbalanceOrg": 143660.14,
+        "newbalanceOrig": 0.0,
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 143660.14,
+        "isFlaggedFraud": 0
+      }
+    },
+    {
+      "label": "Legitimate transfer",
+      "description": "Routine partial transfer between accounts with history \u2014 expect LOW",
+      "request": {
+        "transaction_id": "TX_DEMO_LEGIT_003",
+        "step": 12,
+        "type": "CASH_OUT",
+        "amount": 8399.84,
+        "nameOrig": "C1575094520",
+        "nameDest": "C1118847194",
+        "oldbalanceOrg": 585408.58,
+        "newbalanceOrig": 577008.74,
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 8399.84,
+        "isFlaggedFraud": 0
+      }
+    },
+    {
+      "label": "Out-of-scope type (PAYMENT)",
+      "description": "PaySim has zero fraud outside TRANSFER/CASH_OUT \u2014 expect NOT_APPLICABLE",
+      "request": {
+        "transaction_id": "TX_DEMO_NA_004",
+        "step": 12,
+        "type": "PAYMENT",
+        "amount": 8399.84,
+        "nameOrig": "C1575094520",
+        "nameDest": "C1118847194",
+        "oldbalanceOrg": 585408.58,
+        "newbalanceOrig": 577008.74,
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 8399.84,
+        "isFlaggedFraud": 0
+      }
+    },
+    {
+      "label": "Invalid input (negative amount)",
+      "description": "Demonstrates request validation \u2014 expect 422 BadRequest",
+      "request": {
+        "transaction_id": "TX_DEMO_BAD_005",
+        "step": 34,
+        "type": "CASH_OUT",
+        "amount": -500.0,
+        "nameOrig": "C2109818783",
+        "nameDest": "C197117096",
+        "oldbalanceOrg": 865948.81,
+        "newbalanceOrig": 0.0,
+        "oldbalanceDest": 0.0,
+        "newbalanceDest": 865948.81,
+        "isFlaggedFraud": 0
+      }
+    }
+  ]
+}
