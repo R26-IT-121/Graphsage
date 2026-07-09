@@ -124,6 +124,8 @@ class SuspiciousSubgraph(BaseModel):
     sink_account: str
     pattern: Pattern
     pattern_confidence: float = Field(ge=0, le=1)
+    # Additive v0.3.x extension: per-pattern score breakdown for the RAG prompt.
+    pattern_scores: dict[str, float] | None = None
     structural_evidence: StructuralEvidence
 
 

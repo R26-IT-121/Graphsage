@@ -28,6 +28,8 @@ from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph
 
+from graphsage.extraction.pattern_classifier import classify_pattern
+
 # Column order of data.edge_attr — must match graph_builder.EDGE_FEATURE_COLS.
 EF_AMOUNT_LOG = 0
 EF_DRAIN_RATIO = 1
@@ -291,12 +293,19 @@ class SuspiciousSubgraphExtractor:
             float(attrs[:, EF_DRAIN_RATIO].mean()) if len(edge_ids) else 0.0
         )
 
-        pattern, pattern_confidence = self._classify_pattern(
-            convergence_count=convergence_count,
-            inbound_amounts=amounts[sender_mask].numpy(),
-            has_relay=any(r == "RELAY" for r in roles),
-            trigger_attr=data.edge_attr[trigger_edge_id],
-            fresh_sender_ratio=fresh_sender_ratio,
+        # FATF typology scoring (pattern_classifier.py) — needs the subgraph
+        # in local indexing with the sink as the flagged node.
+        local_ei = torch.stack(
+            [
+                torch.tensor([node_pos[int(s)] for s in src.tolist()]),
+                torch.tensor([node_pos[int(d)] for d in dst.tolist()]),
+            ]
+        )
+        pattern_result = classify_pattern(
+            sub_edge_index=local_ei,
+            sub_edge_attr=attrs,
+            flagged_local=sink_pos,
+            num_sub_nodes=n,
         )
 
         nodes_json = [
@@ -340,8 +349,11 @@ class SuspiciousSubgraphExtractor:
             "nodes": nodes_json,
             "edges": edges_json,
             "sink_account": str(self.node_names[sink_id]),
-            "pattern": pattern,
-            "pattern_confidence": round(pattern_confidence, 2),
+            "pattern": pattern_result.pattern,
+            "pattern_confidence": round(pattern_result.confidence, 2),
+            # Additive contract extension (v0.3.x): per-pattern score breakdown
+            # for Member 4's RAG prompt; existing consumers can ignore it.
+            "pattern_scores": pattern_result.scores,
             "structural_evidence": {
                 "convergence_count": convergence_count,
                 "fresh_sender_ratio": round(fresh_sender_ratio, 4),
@@ -350,38 +362,3 @@ class SuspiciousSubgraphExtractor:
             },
         }
 
-    @staticmethod
-    def _classify_pattern(
-        convergence_count: int,
-        inbound_amounts: np.ndarray,
-        has_relay: bool,
-        trigger_attr: Tensor,
-        fresh_sender_ratio: float,
-    ) -> tuple[str, float]:
-        """Heuristic money-flow pattern classifier over the extracted ring.
-
-        Decision order matters: SMURFING is the specific case of many senders
-        with deliberately similar (structured) amounts, so it is tested before
-        the generic HUB_AND_SPOKE convergence rule.
-        """
-        if convergence_count >= 3 and len(inbound_amounts) >= 3:
-            mean = float(inbound_amounts.mean())
-            cv = float(inbound_amounts.std() / mean) if mean > 0 else 1.0
-            if cv < 0.25:
-                conf = min(
-                    0.95, 0.6 + 0.05 * convergence_count + 0.2 * (0.25 - cv) / 0.25
-                )
-                return "SMURFING", conf
-            conf = min(0.95, 0.55 + 0.05 * convergence_count + 0.2 * fresh_sender_ratio)
-            return "HUB_AND_SPOKE", conf
-
-        src_drained = float(trigger_attr[EF_SRC_DRAINED]) >= 0.5
-        dst_was_empty = float(trigger_attr[EF_DST_WAS_EMPTY]) >= 0.5
-        drain_ratio = float(trigger_attr[EF_DRAIN_RATIO])
-        if convergence_count <= 1 and src_drained and (dst_was_empty or drain_ratio >= 0.95):
-            return "ACCOUNT_TAKEOVER", 0.7 if dst_was_empty else 0.6
-
-        if has_relay:
-            return "LAYERING", 0.6
-
-        return "UNKNOWN", 0.3

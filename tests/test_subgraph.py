@@ -2,10 +2,11 @@
 
 Builds a tiny synthetic hub-and-spoke mule ring:
 
-    A, B, C (fresh senders) --> M (mule sink) --> X (cash-out relay target)
+    A, B, C, D (fresh senders) --> M (mule sink) --> X (cash-out relay target)
     L1 --> L2 (legitimate pair, 2 hops away via nothing — disconnected)
 
-and checks extraction, sink identification, roles, pattern, and the
+(Four senders because the FATF classifier's SMURFING gate requires fan-in >= 4.)
+Checks extraction, sink identification, roles, pattern, and the
 contract-required JSON shape.
 """
 
@@ -16,8 +17,8 @@ from torch_geometric.data import Data
 
 from graphsage.extraction.subgraph import SuspiciousSubgraphExtractor
 
-# node ids:      0    1    2    3    4    5     6
-NAMES = ["C_A", "C_B", "C_C", "C_M", "C_X", "C_L1", "C_L2"]
+# node ids:      0    1    2    3    4    5     6      7
+NAMES = ["C_A", "C_B", "C_C", "C_M", "C_X", "C_L1", "C_L2", "C_D"]
 
 
 def _amount_log(amount: float) -> float:
@@ -25,9 +26,10 @@ def _amount_log(amount: float) -> float:
 
 
 def build_ring() -> Data:
-    # edges: A->M, B->M, C->M (similar amounts), M->X, L1->L2
+    # edges: A->M, B->M, C->M (similar amounts), M->X, L1->L2, D->M
+    # (D->M appended LAST so earlier edge ids stay stable across tests)
     edge_index = torch.tensor(
-        [[0, 1, 2, 3, 5], [3, 3, 3, 4, 6]], dtype=torch.int64
+        [[0, 1, 2, 3, 5, 7], [3, 3, 3, 4, 6, 3]], dtype=torch.int64
     )
     #                 amount_log            drain src_dr dst_empty gap transfer
     edge_attr = torch.tensor(
@@ -37,16 +39,17 @@ def build_ring() -> Data:
             [_amount_log(10100.0), 1.0, 1.0, 0.0, 1.0, 1.0],
             [_amount_log(29800.0), 1.0, 1.0, 0.0, 3.0, 0.0],
             [_amount_log(50.0), 0.1, 0.0, 0.0, 5.0, 0.0],
+            [_amount_log(10050.0), 1.0, 1.0, 0.0, 1.0, 1.0],
         ],
         dtype=torch.float32,
     )
     # x: [in_degree, out_degree, mean_in, mean_out, max_in] (global)
-    x = torch.zeros(7, 5)
-    x[:, 1] = torch.tensor([1, 1, 1, 1, 0, 1, 0], dtype=torch.float32)  # out_deg
-    x[:, 0] = torch.tensor([0, 0, 0, 3, 1, 0, 1], dtype=torch.float32)  # in_deg
-    y = torch.tensor([0, 0, 0, 1, 0, 0, 0], dtype=torch.int8)
-    edge_step = torch.tensor([100, 102, 103, 105, 200], dtype=torch.int16)
-    edge_isFraud = torch.tensor([1, 1, 1, 0, 0], dtype=torch.int8)
+    x = torch.zeros(8, 5)
+    x[:, 1] = torch.tensor([1, 1, 1, 1, 0, 1, 0, 1], dtype=torch.float32)  # out_deg
+    x[:, 0] = torch.tensor([0, 0, 0, 4, 1, 0, 1, 0], dtype=torch.float32)  # in_deg
+    y = torch.tensor([0, 0, 0, 1, 0, 0, 0, 0], dtype=torch.int8)
+    edge_step = torch.tensor([100, 102, 103, 105, 200, 104], dtype=torch.int16)
+    edge_isFraud = torch.tensor([1, 1, 1, 0, 0, 1], dtype=torch.int8)
     return Data(
         x=x,
         edge_index=edge_index,
@@ -61,8 +64,8 @@ def make_extractor(**kwargs) -> SuspiciousSubgraphExtractor:
     return SuspiciousSubgraphExtractor(build_ring(), NAMES, **kwargs)
 
 
-PROBS = torch.tensor([0.2, 0.15, 0.22, 0.97, 0.55, 0.01, 0.02])
-ATTN = torch.tensor([0.9, 0.88, 0.91, 0.85, 0.05])
+PROBS = torch.tensor([0.2, 0.15, 0.22, 0.97, 0.55, 0.01, 0.02, 0.18])
+ATTN = torch.tensor([0.9, 0.88, 0.91, 0.85, 0.05, 0.89])
 
 
 def test_find_trigger_edge():
@@ -86,11 +89,11 @@ def test_extract_ring_shape_and_sink():
         assert key in out, f"missing contract key {key}"
 
     assert out["k_hop"] == 2
-    # 2-hop ball around A and M reaches A,B,C,M,X but not L1/L2
+    # 2-hop ball around A and M reaches the ring but not L1/L2
     got_accounts = {n["account_id"] for n in out["nodes"]}
-    assert got_accounts == {"C_A", "C_B", "C_C", "C_M", "C_X"}
-    assert out["node_count"] == 5
-    assert out["edge_count"] == 4
+    assert got_accounts == {"C_A", "C_B", "C_C", "C_D", "C_M", "C_X"}
+    assert out["node_count"] == 6
+    assert out["edge_count"] == 5
 
     assert out["sink_account"] == "C_M"
     roles = {n["account_id"]: n["role"] for n in out["nodes"]}
@@ -102,11 +105,15 @@ def test_extract_ring_shape_and_sink():
 def test_pattern_smurfing_on_structured_amounts():
     ex = make_extractor(risk_threshold=0.5)
     out = ex.extract(0, PROBS, ATTN)
-    # 3 senders converging with near-identical amounts -> SMURFING
+    # 4 senders converging with near-identical amounts -> SMURFING
     assert out["pattern"] == "SMURFING"
-    assert out["structural_evidence"]["convergence_count"] == 3
+    assert out["structural_evidence"]["convergence_count"] == 4
     assert out["structural_evidence"]["mules_in_subgraph"] == 2  # M and X
     assert 0.0 <= out["pattern_confidence"] <= 1.0
+    # FATF classifier emits the full score breakdown (additive contract field)
+    assert set(out["pattern_scores"]) == {
+        "HUB_AND_SPOKE", "SMURFING", "LAYERING", "ACCOUNT_TAKEOVER",
+    }
 
 
 def test_trigger_edge_marked():
