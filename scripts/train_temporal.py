@@ -40,7 +40,10 @@ from graphsage.training.threshold_tuning import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SNAP_PATH = REPO_ROOT / "data" / "graph" / "paysim_temporal.pt"
+SNAP_PATHS = {
+    "v1": REPO_ROOT / "data" / "graph" / "paysim_temporal.pt",
+    "v2": REPO_ROOT / "data" / "graph" / "paysim_temporal_v2.pt",
+}
 
 STAGES = ("1", "2", "3a", "3b")
 
@@ -89,6 +92,17 @@ def main() -> None:
     parser.add_argument("--hidden-dim", type=int, default=64)
     parser.add_argument("--pos-per-batch", type=int, default=128)
     parser.add_argument("--neg-per-batch", type=int, default=128)
+    parser.add_argument(
+        "--features",
+        choices=("v1", "v2"),
+        default="v1",
+        help="v1 = 5 structural aggregates; v2 = 12-dim behavioural set",
+    )
+    parser.add_argument(
+        "--no-prior-init",
+        action="store_true",
+        help="Disable Focal Loss prior bias init (Lin et al. 2017) on stages 3a/3b",
+    )
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -96,10 +110,12 @@ def main() -> None:
     device = select_device()
     print(f"stage={args.stage} seed={args.seed} device={device}")
 
-    snaps = torch.load(SNAP_PATH, weights_only=False, map_location="cpu")
+    snap_path = SNAP_PATHS[args.features]
+    snaps = torch.load(snap_path, weights_only=False, map_location="cpu")
     train, val, test = snaps["train"], snaps["val"], snaps["test"]
     in_dim = train.x.shape[1]
     edge_dim = train.edge_attr.shape[1]
+    print(f"features={args.features} ({snap_path.name}, in_dim={in_dim})")
 
     if args.stage == "1":
         model = BaselineGraphSAGE(in_dim=in_dim, hidden_dim=args.hidden_dim)
@@ -107,6 +123,19 @@ def main() -> None:
         model = EdgeEnhancedGraphSAGE(
             in_dim=in_dim, edge_dim=edge_dim, hidden_dim=args.hidden_dim
         )
+
+    # Focal Loss prior init (Lin et al. 2017), ported from the May-17 fix in
+    # the team repo: start the classifier bias at log(pi/(1-pi)) so the
+    # optimiser begins at the class prior instead of sigmoid(0)=0.5 — prevents
+    # the inverted-basin convergence and reduces the raw-probability inflation
+    # quantified in calibration_study.py.
+    prior_init = args.stage in ("3a", "3b") and not args.no_prior_init
+    if prior_init:
+        pi = float(train.y[train.eval_mask].float().mean())
+        pi = max(min(pi, 0.5), 1e-4)
+        model.classifier.bias.data.fill_(float(np.log(pi / (1 - pi))))
+        print(f"prior init: pi={pi:.5f}, bias={float(model.classifier.bias):.3f}")
+
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
 
@@ -203,6 +232,8 @@ def main() -> None:
         "protocol": "temporal_snapshots_leakage_free",
         "stage": args.stage,
         "seed": args.seed,
+        "features": args.features,
+        "prior_init": prior_init,
         "best_epoch": best_epoch,
         "tuned_threshold": threshold,
         "val": full_metrics(val_logits, val_y, threshold),
@@ -218,7 +249,8 @@ def main() -> None:
 
     out_dir = REPO_ROOT / "reports" / "temporal"
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"stage{args.stage}_seed{args.seed}.json"
+    tag = f"stage{args.stage}{'_v2' if args.features == 'v2' else ''}_seed{args.seed}"
+    out_path = out_dir / f"{tag}.json"
     out_path.write_text(json.dumps(results, indent=2))
 
     # Raw scores let eval_statistics.py / calibration_study.py run without
@@ -232,16 +264,19 @@ def main() -> None:
             "tuned_threshold": threshold,
             "stage": args.stage,
             "seed": args.seed,
+            "features": args.features,
         },
-        out_dir / f"stage{args.stage}_seed{args.seed}_scores.pt",
+        out_dir / f"{tag}_scores.pt",
     )
 
-    ckpt_path = REPO_ROOT / "checkpoints" / f"temporal_stage{args.stage}_seed{args.seed}.pt"
+    ckpt_path = REPO_ROOT / "checkpoints" / f"temporal_{tag}.pt"
     torch.save(
         {
             "state_dict": best_state,
             "stage": args.stage,
             "seed": args.seed,
+            "features": args.features,
+            "prior_init": prior_init,
             "protocol": "temporal_snapshots_leakage_free",
             "hyperparameters": results["hyperparameters"],
         },

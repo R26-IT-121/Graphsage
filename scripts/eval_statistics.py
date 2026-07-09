@@ -30,20 +30,28 @@ from sklearn.metrics import average_precision_score, f1_score
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCORES_DIR = REPO_ROOT / "reports" / "temporal"
-STAGE_ORDER = ["1", "2", "3a", "3b"]
+STAGE_ORDER = ["1", "2", "3a", "3b", "1_v2", "2_v2", "3a_v2", "3b_v2"]
 STAGE_LABEL = {
     "1": "Stage 1 baseline",
     "2": "Stage 2 +Edge-MLP",
     "3a": "Stage 3a +Focal",
     "3b": "Stage 3b full",
+    "1_v2": "Stage 1 (v2 feats)",
+    "2_v2": "Stage 2 (v2 feats)",
+    "3a_v2": "Stage 3a (v2 feats)",
+    "3b_v2": "Stage 3b (v2 feats)",
 }
 
 
 def load_runs() -> dict[str, list[dict]]:
+    """Group runs by stage, keeping v2-feature runs as separate arms."""
     runs = defaultdict(list)
     for path in sorted(SCORES_DIR.glob("stage*_scores.pt")):
         blob = torch.load(path, weights_only=True, map_location="cpu")
-        runs[str(blob["stage"])].append(blob)
+        key = str(blob["stage"])
+        if blob.get("features", "v1") == "v2":
+            key += "_v2"
+        runs[key].append(blob)
     if not runs:
         raise SystemExit(
             f"No score files in {SCORES_DIR} — run scripts/train_temporal.py first."
