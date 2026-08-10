@@ -134,7 +134,7 @@ def main() -> None:
         pi = float(train.y[train.eval_mask].float().mean())
         pi = max(min(pi, 0.5), 1e-4)
         model.classifier.bias.data.fill_(float(np.log(pi / (1 - pi))))
-        print(f"prior init: pi={pi:.5f}, bias={float(model.classifier.bias):.3f}")
+        print(f"prior init: pi={pi:.5f}, bias={model.classifier.bias.item():.3f}")
 
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
