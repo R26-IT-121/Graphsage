@@ -94,9 +94,15 @@ def main() -> None:
     # ---- Build model ----
     in_dim = int(data.x.shape[1])
     edge_dim = int(data.edge_attr.shape[1])
+    # Focal Loss prior init (Lin et al. 2017): start the classifier bias at the
+    # training fraud rate instead of sigmoid(0)=0.5. Without it, Focal Loss on
+    # a 0.25%-positive problem converges into an inverted basin (AUROC < 0.5).
+    train_pi = float(data.y[data.train_mask].float().mean().item())
+    train_pi = max(min(train_pi, 0.5), 1e-4)  # guard against degenerate values
     print(
         f"\nBuilding EdgeEnhancedGraphSAGE("
-        f"in_dim={in_dim}, edge_dim={edge_dim}, hidden_dim={hidden_dim})"
+        f"in_dim={in_dim}, edge_dim={edge_dim}, hidden_dim={hidden_dim}, "
+        f"prior_pi={train_pi:.5f})"
     )
     model = EdgeEnhancedGraphSAGE(
         in_dim=in_dim,
@@ -104,6 +110,7 @@ def main() -> None:
         hidden_dim=hidden_dim,
         edge_mlp_hidden=edge_mlp_hidden,
         dropout=dropout,
+        prior_pi=train_pi,
     )
     n_params = sum(p.numel() for p in model.parameters())
     print(f"  Total parameters: {n_params:,}")

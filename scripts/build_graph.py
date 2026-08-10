@@ -5,9 +5,11 @@ Writes: data/graph/paysim_graph.pt          (~250 MB tensor object)
         data/graph/graph_metadata.json      (sanity stats)
 
 Usage:
-    python scripts/build_graph.py
+    python scripts/build_graph.py                 # v1: 5 node features
+    python scripts/build_graph.py --features v2   # v2: 12 behavioural features
 """
 
+import argparse
 import json
 import time
 from pathlib import Path
@@ -17,6 +19,7 @@ import torch
 from graphsage.data.graph_builder import (
     EDGE_FEATURE_COLS,
     NODE_FEATURE_NAMES,
+    NODE_FEATURE_NAMES_V2,
     build_paysim_graph,
 )
 
@@ -28,10 +31,17 @@ OUT_META = OUT_DIR / "graph_metadata.json"
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--features", choices=("v1", "v2"), default="v1")
+    args = parser.parse_args()
+    feature_names = (
+        NODE_FEATURE_NAMES_V2 if args.features == "v2" else NODE_FEATURE_NAMES
+    )
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     t0 = time.time()
-    data, stats = build_paysim_graph(PARQUET_PATH)
+    data, stats = build_paysim_graph(PARQUET_PATH, feature_version=args.features)
     print(f"\nGraph built in {time.time() - t0:.1f}s")
 
     # Save graph tensor
@@ -49,7 +59,8 @@ def main() -> None:
         "num_fraud_edges": stats.num_fraud_edges,
         "num_node_features": int(data.x.shape[1]),
         "num_edge_features": int(data.edge_attr.shape[1]),
-        "node_feature_names": NODE_FEATURE_NAMES,
+        "feature_version": args.features,
+        "node_feature_names": feature_names,
         "edge_feature_names": EDGE_FEATURE_COLS,
         "labeling_rule": "y[node] = 1 iff node received any fraud transaction (mule)",
         "edge_step_min": int(data.edge_step.min().item()),
@@ -67,7 +78,7 @@ def main() -> None:
     print(f"  Fraud edges:  {stats.num_fraud_edges:>10,}  ({stats.num_fraud_edges / stats.num_edges * 100:.4f}%)")
     print(f"  Step range:   {metadata['edge_step_min']} -> {metadata['edge_step_max']}")
     print()
-    print("Node feature columns: " + ", ".join(NODE_FEATURE_NAMES))
+    print("Node feature columns: " + ", ".join(feature_names))
     print("Edge feature columns: " + ", ".join(EDGE_FEATURE_COLS))
 
 

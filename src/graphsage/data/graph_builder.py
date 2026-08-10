@@ -43,6 +43,19 @@ NODE_FEATURE_NAMES: list[str] = [
     "max_in_amount_log",
 ]
 
+# v2 behavioural set (May 2026): the five above plus seven mule-signature
+# aggregates. Selected with build_paysim_graph(feature_version="v2"); the
+# serving path and the shipped checkpoints still use v1.
+NODE_FEATURE_NAMES_V2: list[str] = NODE_FEATURE_NAMES + [
+    "std_in_amount_log",       # 5  — uniformity → smurfing signal
+    "distinct_senders",        # 6  — fan-in distinctness → mule signature
+    "distinct_receivers",      # 7  — fan-out distinctness
+    "mean_drain_out",          # 8  — outgoing drain → mule clearing inflows
+    "mean_dst_was_empty_in",   # 9  — incoming-to-fresh-account ratio
+    "txn_velocity",            # 10 — (in+out) / active_steps
+    "first_step_norm",         # 11 — normalised first-appearance step
+]
+
 
 @dataclass
 class GraphStats:
@@ -58,8 +71,17 @@ class GraphStats:
         )
 
 
-def build_paysim_graph(parquet_path: str | Path) -> tuple[Data, GraphStats]:
+def build_paysim_graph(
+    parquet_path: str | Path, feature_version: str = "v1"
+) -> tuple[Data, GraphStats]:
     """Build a PyG Data object from the processed features parquet.
+
+    Parameters
+    ----------
+    feature_version : {"v1", "v2"}
+        v1 = 5 structural aggregates (default; matches the shipped checkpoints
+        and the serving path). v2 = 12-dim behavioural set, for the feature
+        ablation arm.
 
     Returns
     -------
@@ -68,6 +90,8 @@ def build_paysim_graph(parquet_path: str | Path) -> tuple[Data, GraphStats]:
     stats : GraphStats
         Sanity numbers for logging and metadata.
     """
+    if feature_version not in ("v1", "v2"):
+        raise ValueError(f"feature_version must be v1 or v2, got {feature_version!r}")
     parquet_path = Path(parquet_path)
     if not parquet_path.exists():
         raise FileNotFoundError(f"Features parquet not found at {parquet_path}")
@@ -97,28 +121,79 @@ def build_paysim_graph(parquet_path: str | Path) -> tuple[Data, GraphStats]:
     edge_attr = torch.from_numpy(df[EDGE_FEATURE_COLS].to_numpy()).to(torch.float32)
     print(f"      shape={tuple(edge_attr.shape)}")
 
-    # Node features x [num_nodes, 5]
-    print("[5/6] Building node features x...")
+    # Node features x [num_nodes, 5 or 12]
+    n_cols = 12 if feature_version == "v2" else 5
+    print(f"[5/6] Building node features x ({n_cols} columns, {feature_version})...")
     t0 = time.time()
-    out_stats = df.groupby("nameOrig", observed=True).agg(
-        out_degree=("amount_log", "size"),
-        mean_out=("amount_log", "mean"),
-    )
-    in_stats = df.groupby("nameDest", observed=True).agg(
-        in_degree=("amount_log", "size"),
-        mean_in=("amount_log", "mean"),
-        max_in=("amount_log", "max"),
-    )
+    out_aggs = {
+        "out_degree": ("amount_log", "size"),
+        "mean_out": ("amount_log", "mean"),
+    }
+    in_aggs = {
+        "in_degree": ("amount_log", "size"),
+        "mean_in": ("amount_log", "mean"),
+        "max_in": ("amount_log", "max"),
+    }
+    if feature_version == "v2":
+        out_aggs.update(
+            distinct_recv=("nameDest", "nunique"),
+            mean_drain_out=("drain_ratio", "mean"),
+            first_step_out=("step", "min"),
+            last_step_out=("step", "max"),
+        )
+        in_aggs.update(
+            std_in=("amount_log", "std"),
+            distinct_send=("nameOrig", "nunique"),
+            mean_dst_empty_in=("dst_was_empty", "mean"),
+            first_step_in=("step", "min"),
+            last_step_in=("step", "max"),
+        )
+    out_stats = df.groupby("nameOrig", observed=True).agg(**out_aggs)
+    in_stats = df.groupby("nameDest", observed=True).agg(**in_aggs)
 
-    x = np.zeros((num_nodes, 5), dtype=np.float32)
+    x = np.zeros((num_nodes, n_cols), dtype=np.float32)
     out_idx = name_to_id.loc[out_stats.index.values].to_numpy()
     in_idx = name_to_id.loc[in_stats.index.values].to_numpy()
-    # Column order must match NODE_FEATURE_NAMES
+    # Column order must match NODE_FEATURE_NAMES[_V2]
     x[in_idx, 0] = in_stats["in_degree"].to_numpy()
     x[out_idx, 1] = out_stats["out_degree"].to_numpy()
     x[in_idx, 2] = in_stats["mean_in"].to_numpy()
     x[out_idx, 3] = out_stats["mean_out"].to_numpy()
     x[in_idx, 4] = in_stats["max_in"].to_numpy()
+
+    if feature_version == "v2":
+        x[in_idx, 5] = np.nan_to_num(in_stats["std_in"].to_numpy(), nan=0.0)
+        x[in_idx, 6] = in_stats["distinct_send"].to_numpy()
+        x[out_idx, 7] = out_stats["distinct_recv"].to_numpy()
+        x[out_idx, 8] = out_stats["mean_drain_out"].to_numpy()
+        x[in_idx, 9] = in_stats["mean_dst_empty_in"].to_numpy()
+
+        first_step = np.full(num_nodes, np.inf, dtype=np.float32)
+        last_step = np.full(num_nodes, -np.inf, dtype=np.float32)
+        first_step[out_idx] = np.minimum(
+            first_step[out_idx], out_stats["first_step_out"].to_numpy()
+        )
+        last_step[out_idx] = np.maximum(
+            last_step[out_idx], out_stats["last_step_out"].to_numpy()
+        )
+        first_step[in_idx] = np.minimum(
+            first_step[in_idx], in_stats["first_step_in"].to_numpy()
+        )
+        last_step[in_idx] = np.maximum(
+            last_step[in_idx], in_stats["last_step_in"].to_numpy()
+        )
+        active_steps = np.maximum(last_step - first_step + 1.0, 1.0)
+        x[:, 10] = np.where(
+            np.isfinite(active_steps), (x[:, 0] + x[:, 1]) / active_steps, 0.0
+        )
+        max_step = float(df["step"].max())
+        x[:, 11] = np.where(
+            np.isfinite(first_step), first_step / max(max_step, 1.0), -1.0
+        )
+        # log1p count-like columns so degrees don't drown out ratios.
+        for col in (0, 1, 6, 7, 10):
+            x[:, col] = np.log1p(x[:, col])
+
     x_t = torch.from_numpy(x)
     print(f"      shape={tuple(x_t.shape)} (built in {time.time() - t0:.1f}s)")
 

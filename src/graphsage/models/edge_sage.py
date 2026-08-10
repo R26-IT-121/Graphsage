@@ -13,6 +13,8 @@ the training procedure (loss + sampler), not the model.
 
 from __future__ import annotations
 
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,6 +39,12 @@ class EdgeEnhancedGraphSAGE(nn.Module):
         Width of the edge attention MLP hidden layer (default 32).
     dropout : float
         Dropout probability between layers (default 0.3).
+    prior_pi : float, optional
+        Class prior (training fraud rate) used to initialise the classifier
+        bias to log(pi / (1 - pi)) per Lin et al. 2017 (RetinaNet). Without it
+        Focal Loss starts at sigmoid(0)=0.5 on a 0.25%-positive problem and
+        converges into an inverted basin (AUROC < 0.5). Pass this whenever the
+        model is trained with FocalLoss.
     """
 
     def __init__(
@@ -46,6 +54,7 @@ class EdgeEnhancedGraphSAGE(nn.Module):
         hidden_dim: int = 64,
         edge_mlp_hidden: int = 32,
         dropout: float = 0.3,
+        prior_pi: float | None = None,
     ):
         super().__init__()
         self.conv1 = EdgeEnhancedSAGEConv(
@@ -62,6 +71,11 @@ class EdgeEnhancedGraphSAGE(nn.Module):
         )
         self.classifier = nn.Linear(hidden_dim, 1)
         self.dropout = dropout
+
+        if prior_pi is not None:
+            prior_pi = min(max(float(prior_pi), 1e-4), 0.5)
+            with torch.no_grad():
+                self.classifier.bias.fill_(-math.log((1.0 - prior_pi) / prior_pi))
 
     def forward(
         self,

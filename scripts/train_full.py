@@ -103,15 +103,19 @@ def main() -> None:
     # ---- Build model + loss + sampler + optimizer ----
     in_dim = int(data.x.shape[1])
     edge_dim = int(data.edge_attr.shape[1])
+    # Focal Loss prior init (Lin et al. 2017) — see train_focal.py.
+    train_pi = float(data.y[data.train_mask].float().mean().item())
+    train_pi = max(min(train_pi, 0.5), 1e-4)
     model = EdgeEnhancedGraphSAGE(
         in_dim=in_dim,
         edge_dim=edge_dim,
         hidden_dim=hidden_dim,
         edge_mlp_hidden=edge_mlp_hidden,
         dropout=dropout,
+        prior_pi=train_pi,
     )
     n_params = sum(p.numel() for p in model.parameters())
-    print(f"\nModel: EdgeEnhancedGraphSAGE ({n_params:,} params)")
+    print(f"\nModel: EdgeEnhancedGraphSAGE ({n_params:,} params, prior_pi={train_pi:.5f})")
 
     loss_fn = FocalLoss(gamma=gamma, alpha=alpha, reduction="mean")
     print(f"Loss:  FocalLoss(gamma={gamma}, alpha={alpha})")
