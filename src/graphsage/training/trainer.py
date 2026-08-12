@@ -56,6 +56,9 @@ class TrainResult:
     history: list[EpochMetrics] = field(default_factory=list)
     best_state_dict: dict = field(default_factory=dict)
     best_val_f1: float = 0.0
+    best_val_auroc: float = 0.0
+    best_metric_value: float = -1.0
+    best_metric_name: str = "f1"
     best_epoch: int = -1
     final_test_metrics: dict = field(default_factory=dict)
 
@@ -90,6 +93,7 @@ def train_node_classifier(
     loss_fn: Callable | None = None,
     device: torch.device | None = None,
     log_every: int = 1,
+    early_stop_metric: str = "f1",
 ) -> TrainResult:
     """Full-batch training with early stopping.
 
@@ -186,9 +190,23 @@ def train_node_classifier(
                 f"AUROC {epoch_m.val_auroc:.4f} | {elapsed:.1f}s"
             )
 
-        # ---- Early stopping on val F1 ----
-        if epoch_m.val_f1 > result.best_val_f1:
+        # ---- Early stopping on chosen metric ----
+        # F1 at threshold 0.5 is unreliable under severe imbalance: with Focal
+        # Loss + prior init the model produces a good ranking but no scores
+        # cross 0.5, so val_F1 stays at 0. AUROC is threshold-independent and
+        # tracks ranking quality faithfully; threshold tuning runs post-hoc.
+        if early_stop_metric == "auroc":
+            current = epoch_m.val_auroc
+        elif early_stop_metric == "f1":
+            current = epoch_m.val_f1
+        else:
+            raise ValueError(f"Unknown early_stop_metric: {early_stop_metric}")
+
+        if current > result.best_metric_value:
+            result.best_metric_value = current
+            result.best_metric_name = early_stop_metric
             result.best_val_f1 = epoch_m.val_f1
+            result.best_val_auroc = epoch_m.val_auroc
             result.best_epoch = epoch
             result.best_state_dict = {
                 k: v.detach().cpu().clone() for k, v in model.state_dict().items()
@@ -198,9 +216,11 @@ def train_node_classifier(
             epochs_no_improve += 1
             if epochs_no_improve >= early_stopping_patience:
                 print(
-                    f"  Early stopping: no val F1 improvement for "
-                    f"{early_stopping_patience} epochs. Best F1={result.best_val_f1:.4f} "
-                    f"at epoch {result.best_epoch}."
+                    f"  Early stopping: no val {early_stop_metric.upper()} improvement for "
+                    f"{early_stopping_patience} epochs. "
+                    f"Best {early_stop_metric.upper()}={result.best_metric_value:.4f} "
+                    f"at epoch {result.best_epoch} "
+                    f"(val F1={result.best_val_f1:.4f}, AUROC={result.best_val_auroc:.4f})."
                 )
                 break
 

@@ -166,13 +166,28 @@ def main() -> None:
                 deltas.append(f1_b - f1_a)
             lo, hi = np.percentile(deltas, [2.5, 97.5])
             significant = bool(lo > 0 or hi < 0)
+            # A bootstrap CI only covers TEST-SET sampling noise on one seed.
+            # If seed-to-seed std is larger than the effect, the difference is
+            # not reproducible regardless of what the CI says — report both.
+            seed_std = max(
+                report["stages"]["1"]["test_f1_std"],
+                report["stages"][stage]["test_f1_std"],
+            )
+            robust = significant and abs(float(np.mean(deltas))) > seed_std
             entry = {
                 "delta_f1_mean": round(float(np.mean(deltas)), 4),
                 "delta_f1_ci95": [round(float(lo), 4), round(float(hi), 4)],
                 "significant_at_95": significant,
+                "max_seed_std": round(float(seed_std), 4),
+                "robust_across_seeds": robust,
             }
             report["paired_deltas_vs_stage1"][stage] = entry
-            verdict = "SIGNIFICANT" if significant else "not significant"
+            if not significant:
+                verdict = "not significant"
+            elif robust:
+                verdict = "SIGNIFICANT and larger than seed noise"
+            else:
+                verdict = f"significant on this seed BUT < seed std ({seed_std:.4f}) — not robust"
             print(
                 f"  {STAGE_LABEL[stage]:22} ΔF1 {entry['delta_f1_mean']:+.4f} "
                 f"CI {entry['delta_f1_ci95']}  -> {verdict}"

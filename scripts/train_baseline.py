@@ -102,6 +102,9 @@ def main() -> None:
         learning_rate=lr,
         weight_decay=weight_decay,
         early_stopping_patience=patience,
+        # AUROC, not F1@0.5: threshold-independent model selection keeps all
+        # four ablation stages comparable (tuning happens post-hoc).
+        early_stop_metric="auroc",
         use_edge_attr=False,
     )
 

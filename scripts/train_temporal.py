@@ -178,7 +178,7 @@ def main() -> None:
             train_loss = float(loss.item())
         else:
             losses = []
-            for _ in range(sampler.steps_per_epoch):
+            for _ in range(sampler.steps_per_epoch()):
                 batch = sampler.sample()
                 optimizer.zero_grad()
                 logits_sub = model(

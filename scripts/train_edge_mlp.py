@@ -127,6 +127,7 @@ def main() -> None:
         weight_decay=weight_decay,
         early_stopping_patience=patience,
         use_edge_attr=True,  # ← key difference from Stage 1
+        early_stop_metric="auroc",
     )
 
     # ---- Save checkpoint ----

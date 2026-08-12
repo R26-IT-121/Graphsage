@@ -130,6 +130,7 @@ def main() -> None:
         early_stopping_patience=patience,
         use_edge_attr=True,
         loss_fn=loss_fn,
+        early_stop_metric="auroc",
     )
 
     # ---- Save ----
