@@ -26,6 +26,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from scipy import stats
 from sklearn.metrics import average_precision_score, f1_score
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -142,7 +143,59 @@ def main() -> None:
             f"  {STAGE_LABEL[stage]:22} F1 {ci['f1_ci95']}  PR-AUC {ci['pr_auc_ci95']}"
         )
 
-    print("\nPaired deltas vs Stage 1 (same resamples — positive favors the variant):")
+    # --- primary test: across-seed paired comparison ---------------------- #
+    # The bootstrap below resamples ONE seed's test set, so it only measures
+    # test-set noise. With multiple seeds the correct comparison pairs seed i
+    # of each variant against seed i of the baseline and tests the mean
+    # difference — that captures training variance, which dominates here.
+    print("\nAcross-seed paired comparison vs Stage 1 (PRIMARY test):")
+    report["across_seed_vs_stage1"] = {}
+    def paired_t(variant: list[float], base: list[float]) -> tuple[float, float, float]:
+        d = np.array(variant) - np.array(base)
+        n = len(d)
+        mean_d = float(d.mean())
+        sd = float(d.std(ddof=1)) if n > 1 else 0.0
+        if sd > 0 and n > 1:
+            p = float(2 * stats.t.sf(abs(mean_d / (sd / np.sqrt(n))), df=n - 1))
+        else:
+            p = float("nan")
+        return mean_d, sd, p
+
+    if "1" in runs:
+        base = [test_metrics(b) for b in runs["1"]]
+        base_f1, base_ap = [m[0] for m in base], [m[1] for m in base]
+        base_std = report["stages"]["1"]["test_f1_std"]
+        for stage in STAGE_ORDER[1:]:
+            if stage not in runs or len(runs[stage]) != len(base_f1):
+                continue
+            var = [test_metrics(b) for b in runs[stage]]
+            mean_f1, sd_f1, p_f1 = paired_t([m[0] for m in var], base_f1)
+            mean_ap, sd_ap, p_ap = paired_t([m[1] for m in var], base_ap)
+            stage_std = report["stages"][stage]["test_f1_std"]
+            stability = base_std / stage_std if stage_std > 0 else float("inf")
+            entry = {
+                "seeds": len(base_f1),
+                "mean_delta_f1": round(mean_f1, 4),
+                "std_delta_f1": round(sd_f1, 4),
+                "p_value_f1": round(p_f1, 4) if p_f1 == p_f1 else None,
+                "mean_delta_pr_auc": round(mean_ap, 4),
+                "p_value_pr_auc": round(p_ap, 4) if p_ap == p_ap else None,
+                "significant_f1_at_05": bool(p_f1 == p_f1 and p_f1 < 0.05),
+                "significant_pr_auc_at_05": bool(p_ap == p_ap and p_ap < 0.05),
+                "seed_std_baseline": base_std,
+                "seed_std_variant": stage_std,
+                "stability_gain_x": round(float(stability), 1),
+            }
+            report["across_seed_vs_stage1"][stage] = entry
+            star = lambda ok: "SIG" if ok else "n.s."
+            print(
+                f"  {STAGE_LABEL[stage]:22} "
+                f"ΔF1 {mean_f1:+.4f} (p={p_f1:.3f} {star(entry['significant_f1_at_05'])})  "
+                f"ΔPR-AUC {mean_ap:+.4f} (p={p_ap:.3f} {star(entry['significant_pr_auc_at_05'])})  "
+                f"| {stability:.1f}x more stable"
+            )
+
+    print("\nSeed-0 bootstrap deltas (test-set noise only — secondary):")
     report["paired_deltas_vs_stage1"] = {}
     if "1" in probs_by_stage:
         for stage in STAGE_ORDER[1:]:
@@ -166,31 +219,16 @@ def main() -> None:
                 deltas.append(f1_b - f1_a)
             lo, hi = np.percentile(deltas, [2.5, 97.5])
             significant = bool(lo > 0 or hi < 0)
-            # A bootstrap CI only covers TEST-SET sampling noise on one seed.
-            # If seed-to-seed std is larger than the effect, the difference is
-            # not reproducible regardless of what the CI says — report both.
-            seed_std = max(
-                report["stages"]["1"]["test_f1_std"],
-                report["stages"][stage]["test_f1_std"],
-            )
-            robust = significant and abs(float(np.mean(deltas))) > seed_std
             entry = {
                 "delta_f1_mean": round(float(np.mean(deltas)), 4),
                 "delta_f1_ci95": [round(float(lo), 4), round(float(hi), 4)],
                 "significant_at_95": significant,
-                "max_seed_std": round(float(seed_std), 4),
-                "robust_across_seeds": robust,
             }
             report["paired_deltas_vs_stage1"][stage] = entry
-            if not significant:
-                verdict = "not significant"
-            elif robust:
-                verdict = "SIGNIFICANT and larger than seed noise"
-            else:
-                verdict = f"significant on this seed BUT < seed std ({seed_std:.4f}) — not robust"
+            verdict = "excludes 0" if significant else "straddles 0"
             print(
                 f"  {STAGE_LABEL[stage]:22} ΔF1 {entry['delta_f1_mean']:+.4f} "
-                f"CI {entry['delta_f1_ci95']}  -> {verdict}"
+                f"CI {entry['delta_f1_ci95']}  -> {verdict} (seed 0 only)"
             )
 
     out = SCORES_DIR / "statistics.json"
