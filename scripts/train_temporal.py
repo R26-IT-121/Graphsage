@@ -9,6 +9,12 @@ Stages:
     2   EdgeEnhancedGraphSAGE, BCE + pos_weight    (full-batch)
     3a  EdgeEnhancedGraphSAGE, Focal Loss          (full-batch)
     3b  EdgeEnhancedGraphSAGE, Focal + Sampler     (balanced mini-batches)
+    3c  BaselineGraphSAGE,     Focal + Sampler     (3b WITHOUT the Edge-MLP)
+
+3c is the leave-one-out arm for Novelty 1: 3b minus edge attention. Comparing
+3b against 3c is the only way to measure what the Edge-MLP contributes inside
+the full system — Stage 2 vs 1 only measures it in isolation, where it shows
+no effect.
 
 Reads:  data/graph/paysim_temporal.pt
 Writes: reports/temporal/stage{S}_seed{N}.json
@@ -45,7 +51,13 @@ SNAP_PATHS = {
     "v2": REPO_ROOT / "data" / "graph" / "paysim_temporal_v2.pt",
 }
 
-STAGES = ("1", "2", "3a", "3b")
+STAGES = ("1", "2", "3a", "3b", "3c")
+# Stages whose model has no edge-attention layer.
+NO_EDGE_MLP = ("1", "3c")
+# Stages trained with Focal Loss (and therefore prior bias init).
+FOCAL_STAGES = ("3a", "3b", "3c")
+# Stages trained with the Graph-Aware Imbalance Sampler.
+SAMPLER_STAGES = ("3b", "3c")
 
 
 def select_device() -> torch.device:
@@ -117,7 +129,7 @@ def main() -> None:
     edge_dim = train.edge_attr.shape[1]
     print(f"features={args.features} ({snap_path.name}, in_dim={in_dim})")
 
-    if args.stage == "1":
+    if args.stage in NO_EDGE_MLP:
         model = BaselineGraphSAGE(in_dim=in_dim, hidden_dim=args.hidden_dim)
     else:
         model = EdgeEnhancedGraphSAGE(
@@ -129,7 +141,7 @@ def main() -> None:
     # optimiser begins at the class prior instead of sigmoid(0)=0.5 — prevents
     # the inverted-basin convergence and reduces the raw-probability inflation
     # quantified in calibration_study.py.
-    prior_init = args.stage in ("3a", "3b") and not args.no_prior_init
+    prior_init = args.stage in FOCAL_STAGES and not args.no_prior_init
     if prior_init:
         pi = float(train.y[train.eval_mask].float().mean())
         pi = max(min(pi, 0.5), 1e-4)
@@ -144,15 +156,15 @@ def main() -> None:
     n_pos = int(train.y.sum())
     n_neg = int(train_mask.sum()) - n_pos
 
-    if args.stage in ("1", "2"):
+    if args.stage in FOCAL_STAGES:
+        loss_fn = FocalLoss(gamma=2.0, alpha=0.95)
+    else:
         loss_fn = torch.nn.BCEWithLogitsLoss(
             pos_weight=torch.tensor(n_neg / max(n_pos, 1)).to(device)
         )
-    else:
-        loss_fn = FocalLoss(gamma=2.0, alpha=0.95)
 
     sampler = None
-    if args.stage == "3b":
+    if args.stage in SAMPLER_STAGES:
         sampler = GraphAwareImbalanceSampler(
             train,
             k_hop=2,
@@ -181,11 +193,16 @@ def main() -> None:
             for _ in range(sampler.steps_per_epoch()):
                 batch = sampler.sample()
                 optimizer.zero_grad()
-                logits_sub = model(
-                    batch.x.to(device),
-                    batch.edge_index.to(device),
-                    batch.edge_attr.to(device),
-                )
+                if isinstance(model, BaselineGraphSAGE):
+                    logits_sub = model(
+                        batch.x.to(device), batch.edge_index.to(device)
+                    )
+                else:
+                    logits_sub = model(
+                        batch.x.to(device),
+                        batch.edge_index.to(device),
+                        batch.edge_attr.to(device),
+                    )
                 loss = loss_fn(
                     logits_sub[batch.seed_local_idx.to(device)],
                     batch.y.to(device),

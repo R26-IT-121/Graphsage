@@ -31,16 +31,18 @@ from sklearn.metrics import average_precision_score, f1_score
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCORES_DIR = REPO_ROOT / "reports" / "temporal"
-STAGE_ORDER = ["1", "2", "3a", "3b", "1_v2", "2_v2", "3a_v2", "3b_v2"]
+STAGE_ORDER = ["1", "2", "3a", "3b", "3c", "1_v2", "2_v2", "3a_v2", "3b_v2", "3c_v2"]
 STAGE_LABEL = {
     "1": "Stage 1 baseline",
     "2": "Stage 2 +Edge-MLP",
     "3a": "Stage 3a +Focal",
     "3b": "Stage 3b full",
+    "3c": "Stage 3c (3b - EdgeMLP)",
     "1_v2": "Stage 1 (v2 feats)",
     "2_v2": "Stage 2 (v2 feats)",
     "3a_v2": "Stage 3a (v2 feats)",
     "3b_v2": "Stage 3b (v2 feats)",
+    "3c_v2": "Stage 3c (v2 feats)",
 }
 
 
@@ -194,6 +196,38 @@ def main() -> None:
                 f"ΔPR-AUC {mean_ap:+.4f} (p={p_ap:.3f} {star(entry['significant_pr_auc_at_05'])})  "
                 f"| {stability:.1f}x more stable"
             )
+
+    # --- leave-one-out test for Novelty 1 --------------------------------- #
+    # Stage 2 vs 1 measures the Edge-MLP in isolation. 3b vs 3c measures it
+    # INSIDE the full system (identical training, only the edge-attention
+    # layer differs) — the comparison that decides whether Novelty 1 earns
+    # its place in the final model.
+    report["novelty1_leave_one_out"] = {}
+    for full, ablated, tag in (("3b", "3c", ""), ("3b_v2", "3c_v2", " (v2)")):
+        if full not in runs or ablated not in runs:
+            continue
+        if len(runs[full]) != len(runs[ablated]):
+            continue
+        f_m = [test_metrics(b) for b in runs[full]]
+        a_m = [test_metrics(b) for b in runs[ablated]]
+        mean_f1, sd_f1, p_f1 = paired_t([m[0] for m in f_m], [m[0] for m in a_m])
+        mean_ap, sd_ap, p_ap = paired_t([m[1] for m in f_m], [m[1] for m in a_m])
+        entry = {
+            "seeds": len(f_m),
+            "mean_delta_f1": round(mean_f1, 4),
+            "p_value_f1": round(p_f1, 4) if p_f1 == p_f1 else None,
+            "mean_delta_pr_auc": round(mean_ap, 4),
+            "p_value_pr_auc": round(p_ap, 4) if p_ap == p_ap else None,
+            "edge_mlp_helps": bool(p_f1 == p_f1 and p_f1 < 0.05 and mean_f1 > 0),
+        }
+        report["novelty1_leave_one_out"][full] = entry
+        print(
+            f"\nNovelty 1 leave-one-out{tag} — {STAGE_LABEL[full]} vs {STAGE_LABEL[ablated]}:"
+        )
+        print(
+            f"  ΔF1 {mean_f1:+.4f} (p={p_f1:.3f})  ΔPR-AUC {mean_ap:+.4f} (p={p_ap:.3f})"
+            f"  -> Edge-MLP {'CONTRIBUTES' if entry['edge_mlp_helps'] else 'shows no measurable accuracy gain'}"
+        )
 
     print("\nSeed-0 bootstrap deltas (test-set noise only — secondary):")
     report["paired_deltas_vs_stage1"] = {}
