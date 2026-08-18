@@ -219,14 +219,21 @@ def main() -> None:
             "mean_delta_pr_auc": round(mean_ap, 4),
             "p_value_pr_auc": round(p_ap, 4) if p_ap == p_ap else None,
             "edge_mlp_helps": bool(p_f1 == p_f1 and p_f1 < 0.05 and mean_f1 > 0),
+            "edge_mlp_hurts": bool(p_f1 == p_f1 and p_f1 < 0.05 and mean_f1 < 0),
         }
         report["novelty1_leave_one_out"][full] = entry
         print(
             f"\nNovelty 1 leave-one-out{tag} — {STAGE_LABEL[full]} vs {STAGE_LABEL[ablated]}:"
         )
+        if entry["edge_mlp_helps"]:
+            verdict = "CONTRIBUTES"
+        elif entry["edge_mlp_hurts"]:
+            verdict = "HURTS accuracy (significant)"
+        else:
+            verdict = "no measurable accuracy effect"
         print(
             f"  ΔF1 {mean_f1:+.4f} (p={p_f1:.3f})  ΔPR-AUC {mean_ap:+.4f} (p={p_ap:.3f})"
-            f"  -> Edge-MLP {'CONTRIBUTES' if entry['edge_mlp_helps'] else 'shows no measurable accuracy gain'}"
+            f"  -> Edge-MLP {verdict}"
         )
 
     print("\nSeed-0 bootstrap deltas (test-set noise only — secondary):")
