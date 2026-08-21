@@ -1,6 +1,6 @@
 # Edge-Enhanced GraphSAGE — Complete System Walkthrough
 
-**Purpose:** This document walks through every file we built, what it does, what code lives in it, and how each piece contributes to the three research novelties. Read it cover-to-cover before defending the May 11 presentation.
+**Purpose:** This document walks through every file we built, what it does, what code lives in it, and how each piece contributes to the three research novelties. Read it cover-to-cover before defending the progress presentation.
 
 **Author:** Sachintha Bhashitha Ewaduge
 
@@ -20,9 +20,11 @@
 10. [Stage F — Threshold tuning](#10-stage-f--threshold-tuning)
 11. [Stage G — Focal Loss + Imbalance Sampler (Novelty 2)](#11-stage-g--focal-loss--imbalance-sampler-novelty-2)
 12. [Stage H — API contract and integration](#12-stage-h--api-contract-and-integration)
-13. [Results so far (the ablation table)](#13-results-so-far-the-ablation-table)
-14. [What is left to do](#14-what-is-left-to-do)
-15. [Viva defense cheat-sheet](#15-viva-defense-cheat-sheet)
+13. [Results — leakage-free evaluation](#13-results--leakage-free-evaluation)
+14. [Novelty 3 — Suspicious Subgraph extraction](#14-novelty-3--suspicious-subgraph-extraction)
+15. [Serving — API, demo, and the serving bundle](#15-serving--api-demo-and-the-serving-bundle)
+16. [What is left](#16-what-is-left)
+17. [Viva defense cheat-sheet](#17-viva-defense-cheat-sheet)
 
 ---
 
@@ -31,11 +33,11 @@
 We are building one of four independent components of the **DeepSentinel** multi-modal financial fraud detection platform. Our component is the **Edge-Enhanced GraphSAGE Relational Fraud Detector** — the network-intelligence layer that detects organized fraud rings (mule networks) on the PaySim mobile money dataset.
 
 The other three components:
-- Member 2 — Stratified VAE with Dual-Signal Anomaly Attribution (behavioral)
-- Member 3 — Temporal Convolutional Network with system-context features (temporal)
-- Member 4 — Fusion engine with RAG-grounded LLM forensic reports
+- Stratified VAE with Dual-Signal Anomaly Attribution (behavioral)
+- Temporal Convolutional Network with system-context features (temporal)
+- Fusion engine with RAG-grounded LLM forensic reports
 
-**Our role in the pipeline:** Member 4 calls our `POST /api/graph/analyze` endpoint with a transaction. We return a JSON payload with a relational risk score and the suspicious subgraph (mule ring) around the transaction.
+**Our role in the pipeline:** the fusion engine calls our `POST /api/graph/analyze` endpoint with a transaction. We return a JSON payload with a relational risk score and the suspicious subgraph (mule ring) around the transaction.
 
 **Dataset:** PaySim — 6,362,620 simulated mobile money transactions, 0.1291% fraud rate (773:1 imbalance), no PII.
 
@@ -49,7 +51,7 @@ The proposal defines three architectural contributions that distinguish our comp
 |---|---|---|---|
 | **1** | **Edge-MLP attention** | A small MLP injected into GraphSAGE message passing that computes per-edge attention from `(amount_log, drain_ratio, src_drained, dst_was_empty, time_gap, type_is_transfer)`. Suspicious edges dominate aggregation; routine edges contribute little. | [src/graphsage/models/layers.py](../src/graphsage/models/layers.py) |
 | **2** | **Graph-Aware Imbalance Sampler + Focal Loss** | Balanced k-hop subgraph mini-batches with hard-negative mining (instead of full-batch under 773:1 imbalance) + Focal Loss (instead of `pos_weight`). Preserves fraud topology where SMOTE would destroy it. | [src/graphsage/sampling/imbalance_sampler.py](../src/graphsage/sampling/imbalance_sampler.py), [src/graphsage/training/losses.py](../src/graphsage/training/losses.py) |
-| **3** | **Suspicious Subgraph extractor** | k=2 hop walk from every flagged node producing a forensic JSON payload (mules, edges, sink, pattern, structural_evidence) consumed by Member 4's LLM. | [src/graphsage/extraction/subgraph.py](../src/graphsage/extraction/subgraph.py) (implemented — demo: `scripts/demo_extract_subgraph.py`) + [docs/integration/graph_api_contract.md](integration/graph_api_contract.md) |
+| **3** | **Suspicious Subgraph extractor** | k=2 hop walk from every flagged node producing a forensic JSON payload (mules, edges, sink, pattern, structural_evidence) consumed by the fusion engine's LLM. | [src/graphsage/extraction/subgraph.py](../src/graphsage/extraction/subgraph.py) (implemented — demo: `scripts/demo_extract_subgraph.py`) + [docs/integration/graph_api_contract.md](integration/graph_api_contract.md) |
 
 **Be honest about novelty class:** these are *engineering and systems* contributions, not theoretical. We are combining known building blocks (GraphSAGE message passing, focal loss, k-hop subgraph) in a specific configuration designed for forensically-motivated fraud feature engineering on PaySim. The novelty lies in the integration.
 
@@ -89,7 +91,7 @@ Final ablation table ← becomes slide 8 of presentation
     │
     │   src/graphsage/api/app.py           ← FastAPI service
     ▼
-POST /api/graph/analyze → JSON to Member 4
+POST /api/graph/analyze → JSON to fusion engine
 ```
 
 ---
@@ -149,10 +151,10 @@ GraphSage/
 ├── docs/
 │   ├── system_walkthrough.md          # this document
 │   └── integration/
-│       └── graph_api_contract.md      # JSON contract for Member 4
+│       └── graph_api_contract.md      # JSON contract for the fusion engine
 │
 ├── examples/
-│   └── api_responses/                 # 2 sample JSONs for Member 4's mock generator
+│   └── api_responses/                 # sample JSONs for the fusion engine's mock generator
 │
 ├── reports/
 │   ├── eda_findings.md                # T3 deliverable: 8 EDA questions answered
@@ -830,7 +832,7 @@ SMOTE creates synthetic positive examples by interpolating in feature space. For
 
 ### Files
 
-**`docs/integration/graph_api_contract.md`** — the formal contract Member 4 reads
+**`docs/integration/graph_api_contract.md`** — the formal contract the fusion engine reads
 **`examples/api_responses/critical_fraud_hub_and_spoke.json`** — sample CRITICAL fraud
 **`examples/api_responses/medium_risk_ambiguous.json`** — sample borderline
 **`src/graphsage/api/app.py`** — stub (T8)
@@ -865,117 +867,253 @@ SMOTE creates synthetic positive examples by interpolating in feature space. For
 }
 ```
 
-The `pattern` field maps directly to FATF typologies in Member 4's ChromaDB. The `structural_evidence` block provides the quantitative facts the LLM cites in Chain-of-Evidence narratives.
+The `pattern` field maps directly to FATF typologies in the fusion engine's ChromaDB. The `structural_evidence` block provides the quantitative facts the LLM cites in Chain-of-Evidence narratives.
 
-### What is NOT yet implemented
+### Implementation status
 
-The FastAPI service (`src/graphsage/api/app.py`) is a stub. The Suspicious Subgraph extractor (`src/graphsage/extraction/subgraph.py`) is a stub. Both will be implemented in T8 (August). Until then, Member 4 builds her mock generator using the JSON samples we provided.
-
----
-
-## 13. Results so far (the ablation table)
-
-### Current state
-
-| Stage | Threshold | F1 | Precision | Recall | AUROC |
-|---|---|---|---|---|---|
-| Stage 1 — Baseline | 0.5 (default) | 0.3147 | 0.1867 | 1.0000 | 0.9385 |
-| Stage 1 — Baseline | 0.9398 (tuned) | **0.5036** | 0.6318 | 0.4187 | 0.9385 |
-| Stage 2 — + Edge-MLP (Novelty 1) | 0.5 (default) | 0.3139 | 0.1863 | 0.9970 | 0.9406 |
-| Stage 2 — + Edge-MLP (Novelty 1) | 0.6010 (tuned) | **0.4944** | 0.6456 | 0.4006 | 0.9406 |
-| Stage 3a — + Focal Loss only | 0.5 (default) | 0.3075 | 0.1817 | 1.0000 | 0.9497 |
-| Stage 3a — + Focal Loss only | 0.5328 (tuned) | **0.5387** | 0.5137 | 0.5663 | 0.9497 |
-| Stage 3b — Full system (Novelty 2) | 0.5 (default) | 0.3141 | 0.1863 | 1.0000 | 0.9387 |
-| Stage 3b — Full system (Novelty 2) | 0.9367 (tuned) | **0.5027** | 0.6290 | 0.4187 | 0.9387 |
-
-### What the numbers tell us
-
-1. **Stage 1 vs Stage 2 are statistically tied** at the tuned threshold (0.50 vs 0.49). The Edge-MLP improves AUROC by 0.002 and produces better-calibrated thresholds (0.60 vs 0.94) but doesn't translate to F1 gain on this small test set (only 332 mules).
-
-2. **Stage 3a recovered under threshold tuning.** Although full-batch Focal Loss training looked unstable epoch-to-epoch, re-evaluating the saved checkpoint with a tuned threshold gives the best test F1 of the whole ablation (0.5387) and the best AUROC (0.9497), with the most balanced precision/recall trade-off (0.51 / 0.57).
-
-3. **Stage 3b (Focal Loss + Graph-Aware Imbalance Sampler) trains stably but lands statistically tied with the baseline** at tuned threshold (F1 0.5027 vs 0.5036, on only 332 test mules). Its contribution is training stability and calibration, not a headline F1 gain — present it that way, honestly.
-
-### Honest panel narrative
-
-> "Stage 1 baseline establishes the model's discriminative capacity: AUROC of 0.94 on the test set despite the 773:1 class imbalance. Stage 2's Edge-MLP attention marginally improves AUROC and produces better-calibrated probabilities (the optimal threshold drops from 0.94 to 0.60), though F1 at the test scale (332 mules) is statistically tied. Stage 3a, applying Focal Loss to full-batch training, demonstrated the limitations of loss-only approaches under severe imbalance — the loss converges toward predicting the majority class. Stage 3b combines Focal Loss with the Graph-Aware Imbalance Sampler, providing balanced mini-batches and hard-negative mining to translate the per-example focus of Focal Loss into stable training."
-
-That sentence is **bulletproof for the panel.** Memorise it.
+Both sides of the contract are now built: the FastAPI service in
+`src/graphsage/api/app.py` (Section 15) and the Suspicious Subgraph extractor in
+`src/graphsage/extraction/subgraph.py` (Section 14). Sample payloads under
+`examples/api_responses/` remain available for mock generators, and the contract is
+unchanged apart from one **additive** field, `pattern_scores`, which carries the
+per-typology breakdown from the FATF classifier.
 
 ---
 
-## 14. What is left to do
+## 13. Results — leakage-free evaluation
 
-### Immediate (Day 10, May 4)
-- [x] Write Stage 3b sampler + training script
-- [x] Train Stage 3b on PC, get final ablation row
-- [x] Update `eval_with_tuned_threshold.py` to include Stage 3 in the printed table
+### 13.1 Why the earlier numbers were wrong
 
-### This week (May 4-10)
-- [ ] Pydantic schemas for the API contract (Member 4 can `pip install` and validate)
-- [ ] Slide deck (15 slides) — you have all the content, just structure it
-- [ ] Practice presentation (60-second demo + 8 minutes of slides)
+The original pipeline (`build_graph.py` + `make_splits.py`) computes node features and
+mule labels over the **entire** timeline, then splits nodes by first appearance. That
+leaks the future twice: a node evaluated in the test window carries degree and amount
+aggregates that already include test-window transactions, and a training node can be
+labelled by fraud that only happens after the training horizon.
 
-### After May 11 (June onwards)
-- [x] Implement the Suspicious Subgraph extractor (Novelty 3) — pattern classifier, role heuristic, JSON serializer (`src/graphsage/extraction/subgraph.py`, demo in `scripts/demo_extract_subgraph.py`, tests in `tests/test_subgraph.py`)
-- [ ] Build the live FastAPI service (T8 = August)
-- [ ] Connect to Member 4's fusion engine for end-to-end demo
-- [ ] Final report writing (T11 = November)
+`src/graphsage/data/temporal.py` replaces this with the standard **temporal snapshot
+protocol**. Each snapshot sees only edges up to its own horizon, takes labels only from
+its own window, and excludes accounts already known to be mules. Everything below uses
+that protocol, 5 seeds per configuration.
+
+The cost of removing the leak is large and worth stating plainly:
+
+| Protocol | Stage 1 | Stage 3b |
+|---|---|---|
+| Leaky (original) | F1 0.504 | F1 0.497 |
+| **Leakage-free** | **F1 0.281** | **F1 0.395** |
+
+Roughly 40% of the original headline score was leakage. The leakage-free numbers are
+lower and correct; they are the ones to defend.
+
+### 13.2 The ablation table (5 seeds, temporal protocol)
+
+| Stage | Configuration | test F1 (mean ± std) | PR-AUC | vs baseline |
+|---|---|---|---|---|
+| 1 | GraphSAGE + BCE | 0.2806 ± 0.0867 | 0.2411 | — |
+| 2 | + Edge-MLP | 0.2808 ± 0.0832 | 0.2172 | ΔF1 +0.0002 (p=0.998) |
+| 3a | + Focal Loss | 0.3303 ± 0.0726 | 0.2838 | ΔF1 +0.0497 (p=0.488) |
+| 3b | + Imbalance Sampler (full) | 0.3945 ± 0.0078 | 0.3739 | **ΔF1 +0.1139 (p=0.046)** |
+| 3c | 3b **without** Edge-MLP | 0.3940 ± 0.0098 | 0.4236 | ΔF1 +0.1134 (p=0.074) |
+| 3b-v2 | 3b + 12-dim features | 0.3955 ± 0.0052 | 0.3968 | ΔF1 +0.1148 (p=0.063) |
+| **3c-v2** | **3c + 12-dim features** | **0.4056 ± 0.0026** | **0.4479** | **ΔF1 +0.1250 (p=0.045), ΔPR-AUC +0.2068 (p=0.042)** |
+
+Statistics come from `scripts/eval_statistics.py`: the primary test is an across-seed
+paired t-test (seed *i* of a variant against seed *i* of the baseline), which captures
+training variance. A bootstrap CI over one seed's test set is also reported, but it only
+measures test-set sampling noise and is secondary.
+
+### 13.3 Finding 1 — the Imbalance Sampler works, and mostly by stabilising training
+
+Stage 3b is the first configuration with a statistically significant F1 gain
+(+0.114, p=0.046). The larger story is variance. Per-seed F1:
+
+```
+Stage 1 :  0.368  0.172  0.289  0.192  0.382     std 0.087
+Stage 3b:  0.397  0.383  0.394  0.392  0.407     std 0.008     (11x tighter)
+Stage 3c-v2: 0.406 0.404 0.402 0.408 0.408       std 0.003     (33x tighter)
+```
+
+The baseline's outcome depends heavily on initialisation — it can land anywhere between
+0.17 and 0.38. With balanced mini-batches over k-hop fraud subgraphs, the outcome is
+essentially deterministic. For a deployed fraud system that reproducibility matters as
+much as the mean.
+
+Honesty note for the viva: p=0.046 is marginal, and with four comparisons a Bonferroni
+correction (0.0125) would not clear it. The defensible phrasing is "significant in an
+uncorrected paired test at n=5, with a large and unambiguous variance reduction" — the
+variance result is not marginal at all.
+
+### 13.4 Finding 2 — Edge-MLP does not improve accuracy (Novelty 1 reframed)
+
+Stage 3c is Stage 3b with the edge-attention layer removed and everything else
+identical, so 3b vs 3c isolates Novelty 1 inside the full system:
+
+| Comparison | ΔF1 | ΔPR-AUC | Verdict |
+|---|---|---|---|
+| 3b vs 3c (v1 features) | +0.0005 (p=0.952) | −0.0497 (p=0.087) | no effect |
+| 3b vs 3c (v2 features) | −0.0102 (p=0.031) | −0.0512 (p=0.013) | significantly worse |
+
+Three independent tests agree: Stage 2 vs 1 in isolation, and both leave-one-out
+comparisons. Edge attention does not improve predictive accuracy and, with the richer
+feature set, measurably hurts it.
+
+**This does not make Novelty 1 worthless — it relocates its contribution.** The Edge-MLP
+is what produces the per-edge attention weights that drive the Suspicious Subgraph
+explanations (`edge_attention_weight` in the API payload, edge thickness in the demo).
+Without it there is no per-edge attribution and the forensic narrative loses its
+evidence. The honest claim is therefore:
+
+> Per-edge attention costs ≈0.01 F1 and buys the edge-level attribution the forensic
+> explanation is built on. We measured the price of explainability rather than assuming
+> attention improves accuracy.
+
+That is a stronger result than an unverified accuracy claim, and it is why the **served**
+model is 3b-v2 (with attention) even though 3c-v2 scores slightly higher.
+
+### 13.5 Finding 3 — calibration needs isotonic regression, not percentile ranks
+
+Focal Loss with alpha=0.95 inflates raw sigmoid outputs: mule and non-mule scores
+overlap heavily even though ranking is good. `scripts/calibration_study.py` compares
+three transforms on the temporal test window (base rate 0.047):
+
+| Transform | ECE | Interpretation |
+|---|---|---|
+| Raw sigmoid | 0.802 | unusable as a probability |
+| ECDF percentile rank | 0.475 | comparable across accounts, but a **rank**, not a probability |
+| **Isotonic regression** | **0.024** | genuinely probability-calibrated |
+
+All three are monotone, so AUROC and the tuned operating point are identical; only the
+scale changes. Isotonic (fitted on the validation window) is what the serving bundle
+now applies.
+
+A consequence worth knowing: calibrated probabilities on a 4.7%-positive population top
+out near 0.25, so the contract's original fixed risk bands (0.25/0.5/0.75/0.9) would
+never reach CRITICAL. `GraphPredictor.risk_bands` therefore derives the bands from the
+tuned decision threshold and the served score distribution instead.
 
 ---
 
-## 15. Viva defense cheat-sheet
+## 14. Novelty 3 — Suspicious Subgraph extraction
 
-### One-liners for likely questions
+**`src/graphsage/extraction/subgraph.py`** turns a flagged transaction into the forensic
+payload the fusion engine consumes.
 
-**"What is your contribution?"**
-> "An edge-feature-aware GraphSAGE convolution combined with a graph-aware imbalance sampler that preserves fraud topology. The novelty is engineering and systems integration — not theoretical."
+Given a trigger edge it runs `k_hop_subgraph` (k=2, undirected discovery so a ring is
+found regardless of flow direction), keeps the original edge directions for
+serialisation, identifies the **sink** (predicted mules first, then in-degree, then
+score), assigns a role to every account (MULE_CENTRAL / FRESH_SENDER / RELAY /
+TRIGGER_PARTICIPANT / LEGITIMATE), and computes structural evidence — convergence count,
+fresh-sender ratio, mean drain ratio, mules in subgraph.
 
-**"Why GraphSAGE not GAT or GCN?"**
-> "Inductive — generates predictions for previously unseen accounts without retraining. GAT and GCN are transductive."
+Pattern classification is delegated to **`pattern_classifier.py`**, a rule-based FATF
+typology scorer (HUB_AND_SPOKE / SMURFING / LAYERING / ACCOUNT_TAKEOVER). It is
+deterministic and auditable — no learned weights — and emits a per-pattern score
+breakdown plus the evidence keys the LLM prompt cites.
 
-**"Why PaySim not real banking data?"**
-> "Synthetic, peer-reviewed (EMSS 2016), no PII, no GDPR. Eliminates privacy constraints and allows reproducible evaluation."
+Two implementation details that matter:
 
-**"Why is your Stage 1 F1 only 0.50?"**
-> "Severe class imbalance combined with default 0.5 threshold under-utilises the model's discriminative capacity. AUROC of 0.94 confirms the ranking is strong. Stage 3 addresses this through balanced mini-batch sampling and Focal Loss."
+- The saved graph carries no account name strings, so `load_node_names()` rebuilds the
+  id→name mapping from `features.parquet` using the same `pd.unique` ordering as the
+  graph builder, cached to `node_names.npy`.
+- High-degree hubs can pull thousands of edges into a 2-hop ball. `max_edges` caps the
+  payload, always keeping the trigger edge plus the highest-attention edges.
 
-**"Why do you label receivers, not senders, as fraud nodes?"**
-> "EDA showed 99.78% of fraud senders are one-shot disposable accounts with no transaction history. The persistent structural element is the mule (the receiver), so node classification on receivers gives us a target the model can actually learn at inference time."
+---
 
-**"What is the difference between Stage 1 and Stage 2?"**
-> "Identical architecture except the convolution layer. Stage 1 uses stock SAGEConv (mean aggregator). Stage 2 replaces it with EdgeEnhancedSAGEConv, which computes per-edge attention weights from the 6 edge features and uses a weighted sum aggregator. Any F1 difference is attributable to the Edge-MLP."
+## 15. Serving — API, demo, and the serving bundle
 
-**"Why k=2 for the subgraph extraction?"**
-> "PaySim's fraud topology is hub-and-spoke, not multi-hop chains. k=2 captures the sibling-sender convergence pattern: from a flagged transaction, k=2 reaches the mule (1 hop) and the other senders that also fed the same mule (2 hop). This is the actual fraud signature in PaySim, empirically confirmed in EDA Section 9."
+### 15.1 The serving bundle
 
-**"What happens if Member 4's other 2 modules time out?"**
-> "Member 4 implements graceful degradation per her FR2. If our endpoint times out, she proceeds with the available scores from behavioral and temporal modules, and flags the missing modality in the LLM-generated report."
+`scripts/export_serving_bundle.py` runs in Colab and writes one file containing the
+graph tensors, isotonic-calibrated node scores, and per-edge attention. The API loads it
+directly, so **no model is instantiated and no forward pass runs at request time or
+startup**. Three consequences:
 
-### Dataset facts to memorise
+1. Startup is a single file read; per-request work is only edge lookup + extraction.
+2. The demo runs on a laptop — the full-graph forward pass previously exhausted memory.
+3. The demo and the dissertation cannot drift: the scores served are the same ones in
+   `reports/temporal/statistics.json`.
 
-- **6,362,620** transactions
-- **8,213** fraud (0.1291% — verified empirically)
-- **773:1** imbalance ratio
-- **TRANSFER + CASH_OUT** are the only types with fraud (50/50 split)
-- **isFlaggedFraud** misses **99.81%** of fraud
-- **66.5%** of fraud above the 200,000 threshold also escapes the rule (original finding)
-- **99.78%** of fraud senders are one-shot accounts (original finding)
-- **3,277,509** unique nodes in our graph
-- **2,770,409** edges (after filtering to TRANSFER + CASH_OUT)
+### 15.2 API
 
-### Architecture facts
+`src/graphsage/api/app.py` implements `POST /api/graph/analyze` against the locked
+contract, with Pydantic validation (`schemas.py`), a 422 `BadRequest` shape, a 404 when
+no edge anchors the subgraph, `NOT_APPLICABLE` for transaction types where PaySim has no
+fraud, CORS for the dashboard, and `GET /health` exposing the stage, threshold and risk
+bands. Measured latency on the full graph is well inside the 500 ms NFR.
 
-- 2-layer GraphSAGE
-- Hidden dim 64, dropout 0.3
-- Adam optimizer, lr=1e-3, weight_decay=1e-5
-- 50 max epochs, early stopping patience 5
-- Edge-MLP hidden width 32 (514 parameters — Novelty 1's "footprint")
-- Focal Loss γ=2, α=0.95
-- k_hop=2, pos_per_batch=64, neg_per_batch=64, hard_neg_ratio=0.5
+### 15.3 Demo page
+
+`src/graphsage/api/static/demo.html` (served at `/demo`) is framework-free HTML/JS so it
+can be embedded in the combined dashboard later. It renders the extracted ring as an
+interactive force-directed graph — sink centred, nodes coloured by role, edge width by
+attention, dashed trigger edge, hover tooltips, plus an accounts table.
+
+Presentation rules encoded there: role labels are **threshold-aware** (nothing is called
+a "mule" unless the model actually flags it), risk is shown as a percentile rather than a
+bare probability, and a plain-English verdict paragraph precedes the technical detail.
+`scripts/make_demo_dataset.py` mines a small scenario file (fraud ring, account takeover,
+legitimate transfer, out-of-scope type, invalid input) so the demo never touches the
+6.3M-row source at showtime.
+
+---
+
+## 16. What is left
+
+1. Merge the component work into the team repository and integrate with the fusion
+   engine (sample payloads and the deep-link format are ready).
+2. Package the service (Dockerfile + one-command startup) and add a contract test the
+   fusion engine can run in CI.
+3. Optional research extensions, in order of value to a submission: a second dataset
+   (Elliptic) to show the method is not a PaySim artifact; competitor baselines
+   (XGBoost on tabular features, GAT, CARE-GNN/PC-GNN); more seeds to firm up the
+   significance of the sampler result.
+
+---
+
+## 17. Viva defense cheat-sheet
+
+**"How did you pick the threshold — is there a standard?"**
+Decision-threshold tuning on a held-out validation set is standard for imbalanced
+classification; 0.5 is only meaningful when classes are balanced and costs symmetric.
+We sweep thresholds on validation, take the F1-max point on the PR curve, freeze it, and
+report test metrics at that frozen threshold, so the test set never influences the
+choice. scikit-learn ships the same procedure as `TunedThresholdClassifierCV`; the
+theory is Elkan (2001), and Saito & Rehmsmeier (2015) motivate PR over ROC here.
+Alternatives considered: Youden's J, and a cost-matrix threshold — rejected because
+PaySim specifies no FP/FN costs.
+
+**"Why is your F1 only 0.40?"**
+Because it is honest. Under the original leaky protocol we measured 0.50; removing the
+leak costs ~0.20 F1. On a 773:1 imbalance with a 4.7% base rate in the test window,
+PR-AUC 0.45 is roughly 9x better than random.
+
+**"Which novelty actually works?"**
+Novelty 2 (Graph-Aware Imbalance Sampler): +0.114 F1, p=0.046, and an 11–33x reduction
+in seed variance. Novelty 1 (Edge-MLP) does not improve accuracy — we tested it three
+ways — but it supplies the per-edge attribution Novelty 3's explanations depend on, so we
+report it as an explainability mechanism with a measured cost of ~0.01 F1.
+
+**"Where can I see the graph?"**
+Nobody renders 3.3M nodes. The demo renders the extracted suspicious subgraph — the
+40-60 node ring around the flagged transaction — which is exactly the Novelty 3 output.
+The full graph is represented by its statistics and the EDA figures.
+
+**"How do you know it is not leaking?"**
+Each temporal snapshot builds features and message passing from edges at or before its
+own horizon, takes labels only from its own window, and drops accounts already known as
+mules. The protocol is in `src/graphsage/data/temporal.py`.
+
+**"Is the improvement statistically significant?"**
+The primary test is an across-seed paired t-test at n=5. Stage 3b reaches p=0.046 for F1
+and Stage 3c-v2 reaches p=0.045 (F1) and p=0.042 (PR-AUC). These are uncorrected; under
+Bonferroni for four comparisons they would not clear. The variance reduction is the
+robust claim.
+
+**"Are the scores probabilities?"**
+Only after isotonic calibration (ECE 0.024). Raw focal-loss sigmoids are not (ECE 0.80),
+and percentile ranks are comparable but still not probabilities (ECE 0.48).
 
 ---
 
 ## End of walkthrough
-
-For questions or corrections, see commit history of this document. Last verified against code state on **2026-05-03**.

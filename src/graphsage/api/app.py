@@ -26,27 +26,24 @@ from graphsage.api.schemas import (
     ResponseMetadata,
     RiskLevel,
 )
-from graphsage.inference.predictor import (
-    MODEL_VERSION,
-    STAGE_NAME,
-    GraphPredictor,
-)
+from graphsage.inference.predictor import MODEL_VERSION, GraphPredictor
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-# Contract §5 placeholders (configs/model_config.yaml inference.risk_thresholds).
-RISK_THRESHOLDS = {"low": 0.25, "medium": 0.5, "high": 0.75, "critical": 0.9}
+def score_to_risk_level(score: float, bands: dict[str, float]) -> RiskLevel:
+    """Map a calibrated score to a contract §5 risk level.
 
-
-def score_to_risk_level(score: float) -> RiskLevel:
-    if score >= RISK_THRESHOLDS["critical"]:
+    Band edges come from the predictor, which derives them from the tuned
+    decision threshold and the served score distribution — see
+    GraphPredictor.risk_bands for why the config's fixed cutoffs don't apply
+    to calibrated probabilities.
+    """
+    if score >= bands["critical"]:
         return RiskLevel.CRITICAL
-    if score >= RISK_THRESHOLDS["high"]:
+    if score >= bands["high"]:
         return RiskLevel.HIGH
-    if score >= RISK_THRESHOLDS["medium"]:
-        return RiskLevel.HIGH  # contract §5: 0.75-0.90 band is still HIGH
-    if score >= RISK_THRESHOLDS["low"]:
+    if score >= bands["medium"]:
         return RiskLevel.MEDIUM
     return RiskLevel.LOW
 
@@ -68,11 +65,12 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
     @app.on_event("startup")
     def load_predictor() -> None:
         if app.state.predictor is None:
-            print("Loading graph + checkpoint (first start computes score cache)...")
-            app.state.predictor = GraphPredictor(REPO_ROOT)
+            print("Loading serving bundle...")
+            p = GraphPredictor(REPO_ROOT)
+            app.state.predictor = p
             print(
-                f"Ready in {app.state.predictor.startup_seconds:.1f}s — "
-                f"threshold={app.state.predictor.threshold:.4f}"
+                f"Ready in {p.startup_seconds:.1f}s — {p.stage}, "
+                f"threshold={p.threshold:.4f}, bands={p.risk_bands}"
             )
 
     @app.exception_handler(RequestValidationError)
@@ -95,11 +93,13 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
         return {
             "status": "ok",
             "model_version": MODEL_VERSION,
-            "stage": STAGE_NAME,
+            "stage": p.stage,
             "graph_version": p.graph_version,
             "num_nodes": int(p.data.num_nodes),
             "num_edges": int(p.data.num_edges),
             "tuned_threshold": p.threshold,
+            "risk_bands": p.risk_bands,
+            "model_meta": p.meta,
         }
 
     @app.post("/api/graph/analyze", response_model=AnalyzeResponse)
@@ -112,7 +112,7 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
                 transaction_id=req.transaction_id,
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 model_version=MODEL_VERSION,
-                stage=STAGE_NAME,
+                stage=p.stage,
                 relational_risk_score=score,
                 risk_level=level,
                 confidence=confidence,
@@ -145,7 +145,7 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
         score = result["relational_risk_score"]
         return respond(
             score,
-            score_to_risk_level(score),
+            score_to_risk_level(score, p.risk_bands),
             result["confidence"],
             result["suspicious_subgraph"],
         )

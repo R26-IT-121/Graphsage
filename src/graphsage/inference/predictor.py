@@ -1,33 +1,41 @@
 """Inference engine behind /api/graph/analyze.
 
-Loads the graph, node names, and the Stage 3 checkpoint once, runs a single
-full-graph forward pass with attention, and caches node probabilities and
-edge attention to disk (the graph is static, so scores never change between
-requests). Per-request work is then only: resolve the trigger edge, extract
-the k=2 suspicious subgraph, and serialize — which is what keeps p95 under
-the 500 ms budget (NFR1).
+Loads a serving bundle produced by scripts/export_serving_bundle.py — graph
+tensors plus precomputed, isotonic-calibrated node scores and per-edge
+attention. Nothing is inferred at request time and no model is instantiated at
+all, so startup is a single file read and per-request work is only: resolve
+the trigger edge, extract the k=2 subgraph, serialize. That is what keeps p95
+under the 500 ms budget (NFR1) and lets the demo run on a laptop.
+
+The bundle comes from the leakage-free temporal protocol (features and message
+passing restricted to past edges), so the scores served here are the same ones
+reported in reports/temporal/statistics.json — the demo and the dissertation
+cannot drift apart.
 """
 
 from __future__ import annotations
 
-import json
 import time
 from pathlib import Path
 
 import torch
+from torch_geometric.data import Data
 
 from graphsage.extraction.subgraph import SuspiciousSubgraphExtractor, load_node_names
-from graphsage.models.edge_sage import EdgeEnhancedGraphSAGE
 
-MODEL_VERSION = "graphsage-edge-mlp-v0.3.0"
-STAGE_NAME = "stage_3_full"
+MODEL_VERSION = "graphsage-temporal-v0.4.0"
 
 # Fraud exists only in TRANSFER and CASH_OUT (EDA report §3).
 APPLICABLE_TYPES = {"TRANSFER", "CASH_OUT"}
 
+BUNDLE_HELP = (
+    "Build it in Colab with scripts/export_serving_bundle.py and copy it to "
+    "data/graph/serving_bundle.pt"
+)
+
 
 class GraphPredictor:
-    """Owns all model state; constructed once at API startup."""
+    """Owns all serving state; constructed once at API startup."""
 
     def __init__(
         self,
@@ -36,47 +44,52 @@ class GraphPredictor:
         device: str = "cpu",
     ):
         repo_root = Path(repo_root)
-        graph_path = repo_root / "data" / "graph" / "paysim_graph.pt"
-        ckpt_path = repo_root / "checkpoints" / "stage3_full.pt"
+        bundle_path = repo_root / "data" / "graph" / "serving_bundle.pt"
         parquet_path = repo_root / "data" / "processed" / "features.parquet"
         names_cache = repo_root / "data" / "graph" / "node_names.npy"
-        scores_cache = repo_root / "data" / "graph" / "inference_cache.pt"
-        ablation_path = repo_root / "reports" / "ablation_tuned.json"
+
+        if not bundle_path.exists():
+            raise FileNotFoundError(f"{bundle_path} not found. {BUNDLE_HELP}")
 
         t0 = time.time()
-        self.data = torch.load(graph_path, weights_only=False, map_location=device)
-        self.node_names = load_node_names(parquet_path, cache_path=names_cache)
-        self.graph_version = f"paysim_steps_{int(self.data.edge_step.min())}-{int(self.data.edge_step.max())}"
+        bundle = torch.load(bundle_path, weights_only=False, map_location=device)
+        self.meta = bundle["meta"]
+        self.stage = f"stage_{self.meta['stage']}_{self.meta['features']}"
+        self.threshold = float(bundle["threshold"])
+        self.probs = bundle["node_scores"]
+        self.edge_attention = bundle["edge_attention"]
 
-        self.threshold = 0.5
-        if ablation_path.exists():
-            report = json.loads(ablation_path.read_text())
-            self.threshold = float(
-                report.get("stage_3", {}).get("best_threshold", 0.5)
-            )
-
-        raw_probs, self.edge_attention = self._load_or_compute_scores(
-            ckpt_path, scores_cache, device
+        # The extractor only reads x[:, 0] (in_degree) and x[:, 1] (out_degree),
+        # so the bundle ships those two columns rather than the full matrix.
+        self.data = Data(
+            x=bundle["node_degrees"],
+            edge_index=bundle["edge_index"],
+            edge_attr=bundle["edge_attr"],
+            edge_step=bundle["edge_step"],
+            edge_isFraud=bundle["edge_isFraud"],
         )
+        self.data.num_nodes = int(bundle["num_nodes"])
 
-        # Focal Loss (alpha=0.95) inflates raw sigmoid outputs — mule and
-        # non-mule raw probabilities overlap heavily even though the RANKING
-        # is good (AUROC 0.94). Calibrate by percentile rank (ECDF) over
-        # receiving accounts, the candidate-mule population. This is a
-        # monotone transform: ordering, AUROC, and the tuned decision set are
-        # all preserved; only the [0,1] scale becomes interpretable, which is
-        # what contract §5's risk_level bands assume ("calibrated
-        # post-training").
+        # Risk bands (contract §5). The fixed 0.25/0.5/0.75/0.9 cutoffs in
+        # model_config.yaml were placeholders written for raw sigmoid output.
+        # Isotonic-calibrated scores are true probabilities on a 4.7%-positive
+        # population, so they top out well below 0.9 and those cutoffs would
+        # never fire. Anchor the bands to quantities that mean something here:
+        # HIGH is exactly the val-tuned decision threshold (the flag/no-flag
+        # boundary we defend), CRITICAL the extreme tail of scored accounts.
         receivers = self.data.x[:, 0] > 0  # in_degree > 0
-        reference = torch.sort(raw_probs[receivers]).values
-        self.raw_probs = raw_probs
-        self.probs = torch.searchsorted(reference, raw_probs.contiguous()).to(
-            torch.float32
-        ) / len(reference)
-        self.raw_threshold = self.threshold
-        self.threshold = float(
-            torch.searchsorted(reference, torch.tensor(self.threshold)) / len(reference)
-        )
+        scored = self.probs[receivers]
+        self.risk_bands = {
+            "medium": 0.5 * self.threshold,
+            "high": self.threshold,
+            "critical": max(
+                float(torch.quantile(scored.float(), 0.995)), self.threshold
+            ),
+        }
+
+        lo, hi = self.meta["step_range"]
+        self.graph_version = f"paysim_steps_{lo}-{hi}_{self.meta['protocol']}"
+        self.node_names = load_node_names(parquet_path, cache_path=names_cache)
 
         self.extractor = SuspiciousSubgraphExtractor(
             self.data,
@@ -87,38 +100,6 @@ class GraphPredictor:
         )
         self.startup_seconds = time.time() - t0
 
-    def _load_or_compute_scores(
-        self, ckpt_path: Path, cache_path: Path, device: str
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        ckpt_mtime = ckpt_path.stat().st_mtime
-        if cache_path.exists():
-            cache = torch.load(cache_path, weights_only=True, map_location=device)
-            if cache.get("ckpt_mtime") == ckpt_mtime:
-                return cache["probs"], cache["edge_attention"]
-
-        ckpt = torch.load(ckpt_path, weights_only=False, map_location=device)
-        hp = ckpt.get("hyperparameters", {})
-        model = EdgeEnhancedGraphSAGE(
-            in_dim=self.data.x.shape[1],
-            edge_dim=self.data.edge_attr.shape[1],
-            hidden_dim=hp.get("hidden_dim", 64),
-            edge_mlp_hidden=hp.get("edge_mlp_hidden", 32),
-        )
-        model.load_state_dict(ckpt["state_dict"])
-        model.eval()
-        with torch.no_grad():
-            logits, attentions = model.forward_with_attention(
-                self.data.x, self.data.edge_index, self.data.edge_attr
-            )
-            probs = torch.sigmoid(logits)
-            edge_attention = torch.stack(attentions).mean(dim=0)
-
-        torch.save(
-            {"probs": probs, "edge_attention": edge_attention, "ckpt_mtime": ckpt_mtime},
-            cache_path,
-        )
-        return probs, edge_attention
-
     # ------------------------------------------------------------------ #
 
     def is_applicable(self, txn_type: str) -> bool:
@@ -128,10 +109,10 @@ class GraphPredictor:
         """Score a transaction and extract its suspicious subgraph.
 
         Returns None when no matching edge exists in the graph (the service
-        maps that to an error response per contract §4). The risk score is
-        the calibrated (percentile-rank) mule score of the receiving account
-        — the persistent structural element of PaySim fraud (EDA §7/§9);
-        senders are disposable one-shot accounts.
+        maps that to an error response per contract §4). The risk score is the
+        calibrated mule probability of the RECEIVING account — the persistent
+        structural element of PaySim fraud (EDA §7/§9); senders are disposable
+        one-shot accounts.
         """
         trigger = self.extractor.find_trigger_edge(name_orig, name_dest, step)
         if trigger is None:

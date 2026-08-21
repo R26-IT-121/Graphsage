@@ -21,6 +21,9 @@ class FakePredictor:
         self.data = build_ring()
         self.threshold = 0.5
         self.graph_version = "synthetic_test_ring"
+        self.stage = "stage_3b_v2"
+        self.meta = {"stage": "3b", "features": "v2", "calibration": "isotonic"}
+        self.risk_bands = {"medium": 0.25, "high": 0.5, "critical": 0.9}
         self.probs = PROBS
         self.edge_attention = ATTN
         self.extractor = SuspiciousSubgraphExtractor(
