@@ -909,39 +909,65 @@ lower and correct; they are the ones to defend.
 
 | Stage | Configuration | test F1 (mean ± std) | PR-AUC | vs baseline |
 |---|---|---|---|---|
-| 1 | GraphSAGE + BCE | 0.2806 ± 0.0867 | 0.2411 | — |
+| 1 | GraphSAGE + BCE (v1 features) | 0.2806 ± 0.0867 | 0.2411 | — |
 | 2 | + Edge-MLP | 0.2808 ± 0.0832 | 0.2172 | ΔF1 +0.0002 (p=0.998) |
 | 3a | + Focal Loss | 0.3303 ± 0.0726 | 0.2838 | ΔF1 +0.0497 (p=0.488) |
-| 3b | + Imbalance Sampler (full) | 0.3945 ± 0.0078 | 0.3739 | **ΔF1 +0.1139 (p=0.046)** |
+| 3b | + Imbalance Sampler (full) | 0.3944 ± 0.0077 | 0.3737 | **ΔF1 +0.1138 (p=0.046)** |
 | 3c | 3b **without** Edge-MLP | 0.3940 ± 0.0098 | 0.4236 | ΔF1 +0.1134 (p=0.074) |
-| 3b-v2 | 3b + 12-dim features | 0.3955 ± 0.0052 | 0.3968 | ΔF1 +0.1148 (p=0.063) |
+| **1-v2** | **baseline + 12-dim features** | **0.3780 ± 0.0202** | **0.4095** | ΔF1 +0.0974 (p=0.089) |
+| 3b-v2 | 3b + 12-dim features | 0.4021 ± 0.0088 | 0.3957 | **ΔF1 +0.1214 (p=0.047)** |
 | **3c-v2** | **3c + 12-dim features** | **0.4056 ± 0.0026** | **0.4479** | **ΔF1 +0.1250 (p=0.045), ΔPR-AUC +0.2068 (p=0.042)** |
+
+Stage **1-v2** is the arm that makes the table interpretable: it is the plain baseline
+trained on the richer feature set, with no Focal Loss and no sampler. Without it, any
+gain measured against Stage 1 silently bundles "better features" with "better training".
 
 Statistics come from `scripts/eval_statistics.py`: the primary test is an across-seed
 paired t-test (seed *i* of a variant against seed *i* of the baseline), which captures
 training variance. A bootstrap CI over one seed's test set is also reported, but it only
 measures test-set sampling noise and is secondary.
 
-### 13.3 Finding 1 — the Imbalance Sampler works, and mostly by stabilising training
+### 13.3 Finding 1 — where the gain actually comes from
 
-Stage 3b is the first configuration with a statistically significant F1 gain
-(+0.114, p=0.046). The larger story is variance. Per-seed F1:
+The best configuration (3c-v2) beats the baseline by +0.125 F1. Decomposing that with
+the 1-v2 arm shows most of it is **features, not training procedure**:
+
+| Step | F1 | Gain |
+|---|---|---|
+| Stage 1, v1 features | 0.2806 | — |
+| Stage 1, **v2 features** | 0.3780 | **+0.097** (features alone) |
+| Stage 3c, v2 features | 0.4056 | **+0.028** (sampler on top) |
+
+So roughly **78% of the headline gain comes from the 12-dim behavioural features** and
+22% from the Graph-Aware Imbalance Sampler. This is worth stating plainly rather than
+letting the ablation imply otherwise.
+
+The sampler's value is strongly conditional on feature quality. On the weak v1 features
+it is worth +0.113 F1 (Stage 1 → 3c); on the v2 features only +0.028. That makes sense:
+features like `distinct_senders`, `mean_dst_was_empty_in` and `txn_velocity` encode mule
+signatures directly, so much of what hard-negative mining previously had to discover is
+already present in the input.
+
+**What the sampler contributes unambiguously is stability.** Per-seed test F1:
 
 ```
-Stage 1 :  0.368  0.172  0.289  0.192  0.382     std 0.087
-Stage 3b:  0.397  0.383  0.394  0.392  0.407     std 0.008     (11x tighter)
-Stage 3c-v2: 0.406 0.404 0.402 0.408 0.408       std 0.003     (33x tighter)
+Stage 1  (v1) :  0.368  0.172  0.289  0.192  0.382    std 0.087
+Stage 1  (v2) :  0.373  0.346  0.403  0.396  0.372    std 0.020   (4.3x tighter)
+Stage 3c (v2) :  0.407  0.405  0.401  0.409  0.406    std 0.003   (33x tighter)
 ```
 
-The baseline's outcome depends heavily on initialisation — it can land anywhere between
-0.17 and 0.38. With balanced mini-batches over k-hop fraud subgraphs, the outcome is
-essentially deterministic. For a deployed fraud system that reproducibility matters as
-much as the mean.
+The v1 baseline's outcome is close to a lottery — it can land anywhere between 0.17 and
+0.38 depending only on initialisation. Better features cut that spread by 4.3x; adding
+balanced mini-batches over k-hop fraud subgraphs cuts it by 33x, to the point where the
+model is effectively deterministic across seeds. For a system a bank would deploy,
+reproducibility of that kind matters as much as the mean.
 
-Honesty note for the viva: p=0.046 is marginal, and with four comparisons a Bonferroni
-correction (0.0125) would not clear it. The defensible phrasing is "significant in an
-uncorrected paired test at n=5, with a large and unambiguous variance reduction" — the
-variance result is not marginal at all.
+Honesty note for the viva: the significant F1 results (p=0.046 for 3b, p=0.045 for
+3c-v2) are uncorrected, and with several comparisons a Bonferroni correction (0.0125)
+would not clear them. The defensible phrasing is "significant in an uncorrected paired
+test at n=5, with a large and unambiguous variance reduction". The 33x stability result
+is not marginal at all, and 3c-v2 is the only configuration significant on **both** F1
+and PR-AUC.
 
 ### 13.4 Finding 2 — Edge-MLP does not improve accuracy (Novelty 1 reframed)
 
@@ -950,7 +976,7 @@ identical, so 3b vs 3c isolates Novelty 1 inside the full system:
 
 | Comparison | ΔF1 | ΔPR-AUC | Verdict |
 |---|---|---|---|
-| 3b vs 3c (v1 features) | +0.0005 (p=0.952) | −0.0497 (p=0.087) | no effect |
+| 3b vs 3c (v1 features) | +0.0004 (p=0.962) | −0.0498 (p=0.088) | no effect |
 | 3b vs 3c (v2 features) | −0.0102 (p=0.031) | −0.0512 (p=0.013) | significantly worse |
 
 Three independent tests agree: Stage 2 vs 1 in isolation, and both leave-one-out
@@ -1032,7 +1058,15 @@ startup**. Three consequences:
 1. Startup is a single file read; per-request work is only edge lookup + extraction.
 2. The demo runs on a laptop — the full-graph forward pass previously exhausted memory.
 3. The demo and the dissertation cannot drift: the scores served are the same ones in
-   `reports/temporal/statistics.json`.
+   `reports/temporal/statistics.json`. `scripts/make_demo_dataset.py` mines its scenarios
+   from the bundle for the same reason — an earlier version read the raw graph and a
+   separate score cache, and when the served model changed the "fraud ring" scenario
+   silently became LOW risk.
+
+The served configuration is **stage 3b-v2** (tuned threshold 0.183 after calibration).
+`scripts/contract_test.py` verifies a running instance against the contract — 131 checks
+covering every field, enum, internal consistency rule, response branch, and the latency
+NFR.
 
 ### 15.2 API
 
@@ -1089,10 +1123,18 @@ leak costs ~0.20 F1. On a 773:1 imbalance with a 4.7% base rate in the test wind
 PR-AUC 0.45 is roughly 9x better than random.
 
 **"Which novelty actually works?"**
-Novelty 2 (Graph-Aware Imbalance Sampler): +0.114 F1, p=0.046, and an 11–33x reduction
-in seed variance. Novelty 1 (Edge-MLP) does not improve accuracy — we tested it three
-ways — but it supplies the per-edge attribution Novelty 3's explanations depend on, so we
-report it as an explainability mechanism with a measured cost of ~0.01 F1.
+Novelty 2 (Graph-Aware Imbalance Sampler) improves accuracy and, above all, stability:
++0.114 F1 on the original features and a 33x reduction in seed variance. We also
+decomposed the gain honestly — of the +0.125 total, about +0.097 comes from the 12-dim
+behavioural features and +0.028 from the sampler, so the sampler's benefit shrinks as
+features improve. Novelty 1 (Edge-MLP) does not improve accuracy at all — three separate
+tests agree — but it supplies the per-edge attribution Novelty 3's explanations depend
+on, so we report it as an explainability mechanism with a measured cost of ~0.01 F1.
+
+**"Isn't your model just detecting high-degree accounts?"**
+No. The demo's LOW-risk scenario is an account with 54 counterparties scoring 0.0001,
+while a 4-sender fraud sink scores 0.4958. The model separates a busy legitimate hub
+from a mule collection point on structure, not volume.
 
 **"Where can I see the graph?"**
 Nobody renders 3.3M nodes. The demo renders the extracted suspicious subgraph — the
