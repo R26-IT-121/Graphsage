@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+notebooks
+docs
+tests
+reports
+data
+checkpoints
+*.pt
+*.npy
+.DS_Store

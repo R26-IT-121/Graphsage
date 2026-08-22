@@ -224,25 +224,43 @@ Per Fusion Engine FR2 (graceful degradation), Member 4 treats any non-200 respon
 
 ---
 
-## 5. Risk level thresholds (current placeholders)
+## 5. Risk level thresholds (calibrated — read them from `/health`)
 
-```yaml
-# configs/model_config.yaml
-inference:
-  risk_thresholds:
-    low:      0.25
-    medium:   0.50
-    high:     0.75
-    critical: 0.90
+The fixed 0.25/0.50/0.75/0.90 cutoffs originally listed here were placeholders
+written for raw sigmoid output. **They are no longer used.**
+
+`relational_risk_score` is now an **isotonic-calibrated probability** (ECE 0.024,
+fitted on the validation window). On a population with a ~4.7% mule base rate,
+calibrated probabilities top out around 0.25 — so a fixed `>= 0.90` rule would
+never produce `CRITICAL`.
+
+Band edges are therefore derived at startup from the tuned decision threshold and
+the served score distribution:
+
+| Level | Rule |
+|---|---|
+| `LOW` | `score < 0.5 x threshold` |
+| `MEDIUM` | `0.5 x threshold <= score < threshold` |
+| `HIGH` | `score >= threshold` (the tuned flag/no-flag boundary) |
+| `CRITICAL` | `score >= 99.5th percentile of scored accounts` |
+
+**Consumers must not hard-code these numbers.** `GET /health` returns the live
+values:
+
+```json
+{
+  "stage": "stage_3b_v2",
+  "tuned_threshold": 0.0143,
+  "risk_bands": {"medium": 0.0072, "high": 0.0143, "critical": 0.1907},
+  "model_meta": {"calibration": "isotonic_fitted_on_validation_window", ...}
+}
 ```
 
-`relational_risk_score < 0.25` → `LOW`
-`0.25 <= score < 0.50` → `MEDIUM`
-`0.50 <= score < 0.75` → `HIGH`
-`0.75 <= score < 0.90` → `HIGH` (still high)
-`score >= 0.90` → `CRITICAL`
+`risk_level` in the response is already computed for you — prefer it over
+re-deriving from the raw score. Use `risk_bands` only if you need to render a
+gauge or explain the boundary to a user.
 
-These will be calibrated post-training (T7).
+(Illustrative values above; read the real ones from the running service.)
 
 ---
 
@@ -252,11 +270,13 @@ See [`examples/api_responses/`](../../examples/api_responses/):
 
 - `critical_fraud_hub_and_spoke.json` — high-confidence fraud, full subgraph
 - `medium_risk_ambiguous.json` — borderline case, partial subgraph
-- `low_risk_legitimate.json` — non-fraud, minimal subgraph
-- `not_applicable_payment.json` — unsupported transaction type
-- `error_bad_request.json` — error response example
+- `subgraph_demo.json` — a real `suspicious_subgraph` payload straight from the
+  running service (38-sender hub-and-spoke ring)
 
-The Fusion Engine's mock generator should rotate through these to cover all branches of its fusion logic.
+The mock generator should rotate through these to cover all branches of the
+fusion logic. To exercise the remaining branches against the live service, use the
+curated scenarios in `data/demo/demo_transactions.json`, which deliberately cover
+`CRITICAL`, `HIGH`, `LOW`, `NOT_APPLICABLE`, and a 422 validation failure.
 
 ---
 
@@ -266,4 +286,17 @@ The Fusion Engine's mock generator should rotate through these to cover all bran
 - **Breaking changes** (renaming a field, removing a field, changing types) trigger a major bump and require coordination with Member 4
 - **Additive changes** (new optional fields) trigger a minor bump and are backward-compatible
 
-Lock the major version after Proposal Presentation 1 (May 11, 2026). Subsequent changes go through a 1-week notice via the team chat.
+### Changes since the contract was locked
+
+All backward-compatible; no consumer code needs to change.
+
+| Change | Type | Notes |
+|---|---|---|
+| `pattern_scores` added to `suspicious_subgraph` | **additive** | Per-typology score breakdown (`{HUB_AND_SPOKE: 0.82, SMURFING: 0.31, ...}`) from the FATF classifier. Useful for RAG prompts that want to cite runner-up patterns. |
+| `relational_risk_score` now isotonic-calibrated | semantics | Same field, same range, now a true probability. Ranking is unchanged (monotone transform). |
+| Risk bands derived at runtime | semantics | See Section 5; read from `/health`. |
+| `stage` now reports the served configuration | semantics | e.g. `stage_3b_v2` instead of a fixed string. |
+| CORS enabled for `GET`/`POST` | additive | The dashboard can call the service directly from the browser. |
+| `GET /demo?nameOrig=..&nameDest=..&step=..&autorun=1` | additive | Deep-link into the graph investigation view for a specific transaction — embeddable from the dashboard. |
+
+Subsequent changes go through a 1-week notice via the team chat.

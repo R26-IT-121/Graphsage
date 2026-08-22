@@ -1,0 +1,35 @@
+# Runs the GraphSAGE component on its own. The fusion engine reaches it at
+# http://graphsage:8000 when both are on the deepsentinel network.
+#
+#   docker compose up --build
+#   docker compose run --rm contract-test     # verify the contract
+#
+# For the full DeepSentinel stack, add the other components as services on the
+# same network and point the fusion engine at GRAPHSAGE_URL=http://graphsage:8000
+services:
+  graphsage:
+    build: .
+    image: deepsentinel/graphsage
+    container_name: graphsage
+    ports:
+      - "8000:8000"
+    volumes:
+      # serving_bundle.pt + features.parquet live here; read-only at runtime.
+      - ./data:/app/data:ro
+    networks: [deepsentinel]
+    restart: unless-stopped
+
+  # Contract conformance check against the running service. Consumers can run
+  # this in CI to catch a breaking change before it reaches the demo.
+  contract-test:
+    image: deepsentinel/graphsage
+    depends_on:
+      graphsage:
+        condition: service_healthy
+    command: ["python", "scripts/contract_test.py", "--url", "http://graphsage:8000"]
+    networks: [deepsentinel]
+    profiles: [test]
+
+networks:
+  deepsentinel:
+    name: deepsentinel
