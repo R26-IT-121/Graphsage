@@ -53,7 +53,7 @@ Ready-to-paste slide content. Each section gives you:
 |---|---|
 | Gap 1 — Underutilisation of edge features in message passing | **Novelty 1**: Edge-MLP attention layer learns per-edge weight from 6 forensic features (`drain_ratio`, `dst_was_empty`, `time_gap`, etc.) |
 | Gap 2 — Class imbalance destroys training (SMOTE breaks topology) | **Novelty 2**: Focal Loss + k-hop subgraph sampler with hard-negative mining — preserves fraud-ring topology intact |
-| Gap 3 — Black-box GNN outputs not legally actionable | **Novelty 3**: Structured JSON forensic schema with `pattern`, `sink_account`, `structural_evidence` — consumed by Member 4's RAG-LLM |
+| Gap 3 — Black-box GNN outputs not legally actionable | **Novelty 3**: Structured JSON forensic schema with `pattern`, `sink_account`, `structural_evidence` — consumed by the fusion engine's RAG-LLM |
 | Non-graph baselines treat transactions in isolation | Inductive GraphSAGE — predicts on the network of connections, not single rows |
 | New accounts cannot be scored at inference | GraphSAGE inductive design — generalises to unseen nodes without retraining |
 
@@ -65,7 +65,7 @@ Ready-to-paste slide content. Each section gives you:
 >
 > *Gap 2 — under 773-to-1 class imbalance, standard training collapses. We addressed this with two combined techniques: Focal Loss focuses gradients on hard examples, and our Graph-Aware Imbalance Sampler builds balanced 50/50 mini-batches from intact k-hop subgraphs, with hard-negative mining choosing legitimate accounts that look structurally like mules.*
 >
-> *Gap 3 — most GNNs output a probability score with no explanation. Our Novelty 3 extracts the suspicious subgraph around every flagged account, classifies the pattern, and produces a typed JSON payload. Member 4's LLM is forced to cite this evidence in its forensic report.*
+> *Gap 3 — most GNNs output a probability score with no explanation. Our Novelty 3 extracts the suspicious subgraph around every flagged account, classifies the pattern, and produces a typed JSON payload. The fusion engine's LLM is forced to cite this evidence in its forensic report.*
 >
 > *Beyond these three gaps, the choice of GraphSAGE itself addresses two structural requirements — the inductive property means new accounts can be scored instantly, which is mandatory for real-time deployment."*
 
@@ -92,7 +92,7 @@ Ready-to-paste slide content. Each section gives you:
 - **NFR1 — Latency < 500 ms per batch:** ✅ Inference completes in ~30 ms on CPU per node
 - **NFR2 — Imbalance robustness:** ✅ Best Test Recall = 0.566 (35% relative gain over baseline)
 - **NFR3 — Memory efficiency:** ✅ 9,667-parameter model; full graph fits in 200 MB RAM
-- **NFR4 — Interoperability:** ✅ Pydantic schema locked with Member 4 before May 11
+- **NFR4 — Interoperability:** ✅ Pydantic schema locked with the fusion engine before May 11
 
 ## Bullets (Stakeholders Served)
 
@@ -104,7 +104,7 @@ Ready-to-paste slide content. Each section gives you:
 
 > *"Our proposal defined six functional requirements and four non-functional requirements. Four of the six FRs are fully implemented today — graph construction, edge attribute integration, inductive inference, and JSON export. FR5, the relational metadata extraction, is fully demonstrated in our live dashboard. FR1, the FastAPI ingestion endpoint, is on the T8 timeline for August — the design is locked, only the wiring remains.*
 >
-> *On the non-functional side: inference latency is well under the 500-millisecond target. Imbalance robustness is demonstrated with test recall of 0.566 — catching 57% of test mules. The model is tiny at 9,667 parameters, well within memory budget. And the JSON interoperability schema is locked with Member 4 before today's presentation, so she can build her RAG pipeline against a stable contract.*
+> *On the non-functional side: inference latency is well under the 500-millisecond target. Imbalance robustness is demonstrated with test recall of 0.566 — catching 57% of test mules. The model is tiny at 9,667 parameters, well within memory budget. And the JSON interoperability schema is locked with the fusion engine before today's presentation, so that RAG pipeline can be built against a stable contract.*
 >
 > *Our three stakeholders are all served by different aspects of the same output. Investigators read the narrative; compliance officers use the structural evidence for SARs; engineers benefit from our modular architecture and config-driven hyperparameters."*
 

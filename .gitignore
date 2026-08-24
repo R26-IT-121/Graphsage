@@ -52,3 +52,9 @@ Thumbs.db
 logs/
 runs/
 wandb/
+
+# Personal study and presentation material — kept locally, not committed.
+# These are written around the team structure (member labels, teammates' names)
+# and are prep notes rather than project documentation.
+docs/research_study_guide.*
+docs/presentation_script.*

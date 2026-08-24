@@ -83,11 +83,11 @@
 <h1 id="edge-enhanced-graphsage-progress-report">Edge-Enhanced GraphSAGE — Progress Report</h1>
 <p><strong>Progress Presentation 1 | May 11, 2026</strong></p>
 <p><strong>Author:</strong> Sachintha Bhashitha Ewaduge<br />
-<strong>Component:</strong> Member 1 — Relational Fraud Detector<br />
+<strong>Component:</strong> Relational Fraud Detector<br />
 <strong>Project:</strong> DeepSentinel — A Cloud-Native Multi-Modal AI Platform for Explainable Financial Fraud Detection</p>
 <hr />
 <h2 id="executive-summary">Executive Summary</h2>
-<p>This report covers all work completed for Member 1's Edge-Enhanced GraphSAGE component of the DeepSentinel multi-modal fraud detection platform between <strong>April 27 and May 8, 2026</strong>. Approximately <strong>65% of the WBS is complete</strong>, exceeding the 50% target for Progress Presentation 1.</p>
+<p>This report covers all work completed for the Edge-Enhanced GraphSAGE component of the DeepSentinel multi-modal fraud detection platform between <strong>April 27 and May 8, 2026</strong>. Approximately <strong>65% of the WBS is complete</strong>, exceeding the 50% target for Progress Presentation 1.</p>
 <p><strong>Key results (test set, threshold-tuned on validation):</strong><br />
 - <strong>Best F1: 0.5387</strong> (Stage 3a — Edge-MLP + Focal Loss)<br />
 - <strong>AUROC: 0.9497</strong> (excellent ranking quality)<br />
@@ -99,7 +99,7 @@
 - ✅ Four trained models (Stage 1, 2, 3a, 3b) with full ablation<br />
 - ✅ Threshold-tuned evaluation script<br />
 - ✅ Live demo notebook (Mac + Colab editions)<br />
-- ✅ JSON API contract for Member 4's fusion engine<br />
+- ✅ JSON API contract for the fusion engine<br />
 - ✅ EDA report with 8 verified findings (2 original)<br />
 - ✅ System walkthrough documentation</p>
 <hr />
@@ -162,28 +162,28 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Member 1 (this report)</strong></td>
+<td><strong>Relational (this report)</strong></td>
 <td>Edge-Enhanced GraphSAGE</td>
 <td><code>POST /api/graph/analyze</code></td>
 </tr>
 <tr>
-<td>Member 2 — Wijesinghe</td>
+<td>Behavioural</td>
 <td>Stratified VAE + DSAA</td>
 <td><code>POST /api/behavioral/analyze</code></td>
 </tr>
 <tr>
-<td>Member 3 — Pathirana</td>
+<td>Temporal</td>
 <td>Temporal Convolutional Network</td>
 <td><code>POST /api/temporal/analyze</code></td>
 </tr>
 <tr>
-<td>Member 4 — Vidanaarachchi</td>
+<td>Fusion</td>
 <td>Fusion Engine + RAG-LLM</td>
 <td>calls all 3 above</td>
 </tr>
 </tbody>
 </table>
-<p>Member 4's fusion engine fires the three upstream services in parallel via async APIs, fuses their probability scores via Logistic Regression, retrieves matching FATF crime typologies from a ChromaDB vector store, and uses a RAG-grounded LLM to generate forensic narratives.</p>
+<p>The fusion engine fires the three upstream services in parallel via async APIs, fuses their probability scores via Logistic Regression, retrieves matching FATF crime typologies from a ChromaDB vector store, and uses a RAG-grounded LLM to generate forensic narratives.</p>
 <hr />
 <h2 id="2-the-three-research-novelties">2. The Three Research Novelties</h2>
 <p>The proposal defines three architectural contributions that distinguish our component from generic GraphSAGE:</p>
@@ -210,7 +210,7 @@ h_i = W_self * x_i + W_neigh * SUM(edge_weight_ij * x_j for j in N(i))
 <p><strong>Files:</strong> <a href="../src/graphsage/sampling/imbalance_sampler.py">src/graphsage/sampling/imbalance_sampler.py</a>, <a href="../src/graphsage/training/losses.py">src/graphsage/training/losses.py</a></p>
 <h3 id="novelty-3-suspicious-subgraph-extractor">Novelty 3 — Suspicious Subgraph Extractor</h3>
 <p><strong>Problem:</strong> GNN risk scores are "black boxes" — a compliance officer cannot freeze assets based on a 92% probability without supporting evidence.</p>
-<p><strong>Our fix:</strong> When a node is flagged, extract its k=2 hop neighborhood, identify the sink account (mule), classify the pattern (HUB_AND_SPOKE / SMURFING / LAYERING), and serialize it as a JSON payload for Member 4's LLM forensic engine.</p>
+<p><strong>Our fix:</strong> When a node is flagged, extract its k=2 hop neighborhood, identify the sink account (mule), classify the pattern (HUB_AND_SPOKE / SMURFING / LAYERING), and serialize it as a JSON payload for the fusion engine's LLM.</p>
 <p><strong>Files:</strong> <a href="../src/graphsage/extraction/subgraph.py">src/graphsage/extraction/subgraph.py</a> (interface stub — full implementation T8), <a href="integration/graph_api_contract.md">docs/integration/graph_api_contract.md</a>, <a href="../examples/api_responses/">examples/api_responses/</a></p>
 <hr />
 <h2 id="3-repository-structure">3. Repository Structure</h2>
@@ -269,10 +269,10 @@ h_i = W_self * x_i + W_neigh * SUM(edge_weight_ij * x_j for j in N(i))
 │   ├── progress_report.md             # THIS DOCUMENT
 │   ├── system_walkthrough.md          # Detailed file-by-file walkthrough
 │   └── integration/
-│       └── graph_api_contract.md      # JSON contract for Member 4
+│       └── graph_api_contract.md      # JSON contract for the fusion engine
 │
 ├── examples/
-│   └── api_responses/                 # Sample JSONs for Member 4's mocks
+│   └── api_responses/                 # Sample JSONs for fusion-engine mocks
 │
 ├── reports/
 │   ├── eda_findings.md                # T3 deliverable: 8 EDA questions answered
@@ -322,7 +322,7 @@ Final ablation table → Slide 8 of presentation
         │
         │   src/graphsage/api/app.py       ← FastAPI service
         ▼
-POST /api/graph/analyze → JSON to Member 4
+POST /api/graph/analyze → JSON to the fusion engine
 </code></pre>
 <hr />
 <h2 id="5-the-six-edge-features-engineered-from-eda">5. The Six Edge Features (Engineered from EDA)</h2>
@@ -736,7 +736,7 @@ class GraphAwareImbalanceSampler:
 <li>All four trained models produce sensible predictions</li>
 <li>AUROC ≥ 0.94 across all stages — model has clearly learned signal</li>
 <li>Ablation table shows interpretable progressive improvements</li>
-<li>Member 4 integration contract is locked and demonstrable</li>
+<li>Fusion engine integration contract is locked and demonstrable</li>
 </ul>
 <h3 id="honest-limitations">Honest limitations</h3>
 <ul>
@@ -749,7 +749,7 @@ class GraphAwareImbalanceSampler:
 <ol>
 <li>Add richer node features (variance of received amounts, time-span of activity, distinct-sender count)</li>
 <li>Explore edge classification (predict per-transaction fraud) in addition to node classification</li>
-<li>Implement live FastAPI service for Member 4 integration (T8)</li>
+<li>Implement live FastAPI service for fusion engine integration (T8)</li>
 <li>Deploy on cloud or shared Drive for team integration testing (T10)</li>
 </ol>
 <hr />
@@ -782,9 +782,9 @@ class GraphAwareImbalanceSampler:
 <blockquote>
 <p>PaySim's fraud topology is hub-and-spoke, not multi-hop chains. k=2 captures the sibling-sender convergence pattern: from a flagged transaction, k=2 reaches the mule (1 hop) and the other senders that fed the same mule (2 hops). This is the actual fraud signature in PaySim, empirically confirmed in EDA Section 9.</p>
 </blockquote>
-<p><strong>"What happens if Member 4's other 2 modules time out?"</strong></p>
+<p><strong>"What happens if the other 2 modules time out?"</strong></p>
 <blockquote>
-<p>Member 4 implements graceful degradation per her FR2. If our endpoint times out, she proceeds with available scores from behavioral and temporal modules and flags the missing modality in the LLM-generated report.</p>
+<p>The fusion engine implements graceful degradation per its FR2. If our endpoint times out, it proceeds with available scores from behavioral and temporal modules and flags the missing modality in the LLM-generated report.</p>
 </blockquote>
 <p><strong>"Stage 3a beats Stage 3b — doesn't that contradict your novelty?"</strong></p>
 <blockquote>

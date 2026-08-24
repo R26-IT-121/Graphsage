@@ -12,14 +12,14 @@
 **Progress Presentation 1 | May 11, 2026**
 
 **Author:** Sachintha Bhashitha Ewaduge
-**Component:** Member 1 — Relational Fraud Detector
+**Component:** Relational Fraud Detector
 **Project:** DeepSentinel — A Cloud-Native Multi-Modal AI Platform for Explainable Financial Fraud Detection
 
 ---
 
 ## Executive Summary
 
-This report covers all work completed for Member 1's Edge-Enhanced GraphSAGE component of the DeepSentinel multi-modal fraud detection platform between **April 27 and May 8, 2026**. Approximately **65% of the WBS is complete**, exceeding the 50% target for Progress Presentation 1.
+This report covers all work completed for the Edge-Enhanced GraphSAGE component of the DeepSentinel multi-modal fraud detection platform between **April 27 and May 8, 2026**. Approximately **65% of the WBS is complete**, exceeding the 50% target for Progress Presentation 1.
 
 **Key results (test set, threshold-tuned on validation):**
 - **Best F1: 0.5387** (Stage 3a — Edge-MLP + Focal Loss)
@@ -33,7 +33,7 @@ This report covers all work completed for Member 1's Edge-Enhanced GraphSAGE com
 - ✅ Four trained models (Stage 1, 2, 3a, 3b) with full ablation
 - ✅ Threshold-tuned evaluation script
 - ✅ Live demo notebook (Mac + Colab editions)
-- ✅ JSON API contract for Member 4's fusion engine
+- ✅ JSON API contract for the fusion engine
 - ✅ EDA report with 8 verified findings (2 original)
 - ✅ System walkthrough documentation
 
@@ -72,12 +72,12 @@ DeepSentinel comprises four components, each developed by one member:
 
 | Member | Component | Endpoint |
 |---|---|---|
-| **Member 1 (this report)** | Edge-Enhanced GraphSAGE | `POST /api/graph/analyze` |
-| Member 2 — Wijesinghe | Stratified VAE + DSAA | `POST /api/behavioral/analyze` |
-| Member 3 — Pathirana | Temporal Convolutional Network | `POST /api/temporal/analyze` |
-| Member 4 — Vidanaarachchi | Fusion Engine + RAG-LLM | calls all 3 above |
+| **Relational (this report)** | Edge-Enhanced GraphSAGE | `POST /api/graph/analyze` |
+| Behavioural | Stratified VAE + DSAA | `POST /api/behavioral/analyze` |
+| Temporal | Temporal Convolutional Network | `POST /api/temporal/analyze` |
+| Fusion | Fusion Engine + RAG-LLM | calls all 3 above |
 
-Member 4's fusion engine fires the three upstream services in parallel via async APIs, fuses their probability scores via Logistic Regression, retrieves matching FATF crime typologies from a ChromaDB vector store, and uses a RAG-grounded LLM to generate forensic narratives.
+The fusion engine fires the three upstream services in parallel via async APIs, fuses their probability scores via Logistic Regression, retrieves matching FATF crime typologies from a ChromaDB vector store, and uses a RAG-grounded LLM to generate forensic narratives.
 
 ---
 
@@ -124,7 +124,7 @@ This preserves fraud-ring topology where SMOTE would destroy it.
 
 **Problem:** GNN risk scores are "black boxes" — a compliance officer cannot freeze assets based on a 92% probability without supporting evidence.
 
-**Our fix:** When a node is flagged, extract its k=2 hop neighborhood, identify the sink account (mule), classify the pattern (HUB_AND_SPOKE / SMURFING / LAYERING), and serialize it as a JSON payload for Member 4's LLM forensic engine.
+**Our fix:** When a node is flagged, extract its k=2 hop neighborhood, identify the sink account (mule), classify the pattern (HUB_AND_SPOKE / SMURFING / LAYERING), and serialize it as a JSON payload for the fusion engine's LLM.
 
 **Files:** [src/graphsage/extraction/subgraph.py](../src/graphsage/extraction/subgraph.py) (interface stub — full implementation T8), [docs/integration/graph_api_contract.md](integration/graph_api_contract.md), [examples/api_responses/](../examples/api_responses/)
 
@@ -188,10 +188,10 @@ GraphSage/
 │   ├── progress_report.md             # THIS DOCUMENT
 │   ├── system_walkthrough.md          # Detailed file-by-file walkthrough
 │   └── integration/
-│       └── graph_api_contract.md      # JSON contract for Member 4
+│       └── graph_api_contract.md      # JSON contract for the fusion engine
 │
 ├── examples/
-│   └── api_responses/                 # Sample JSONs for Member 4's mocks
+│   └── api_responses/                 # Sample JSONs for fusion-engine mocks
 │
 ├── reports/
 │   ├── eda_findings.md                # T3 deliverable: 8 EDA questions answered
@@ -245,7 +245,7 @@ Final ablation table → Slide 8 of presentation
         │
         │   src/graphsage/api/app.py       ← FastAPI service
         ▼
-POST /api/graph/analyze → JSON to Member 4
+POST /api/graph/analyze → JSON to the fusion engine
 ```
 
 ---
@@ -474,7 +474,7 @@ class GraphAwareImbalanceSampler:
 - All four trained models produce sensible predictions
 - AUROC ≥ 0.94 across all stages — model has clearly learned signal
 - Ablation table shows interpretable progressive improvements
-- Member 4 integration contract is locked and demonstrable
+- Fusion engine integration contract is locked and demonstrable
 
 ### Honest limitations
 - Final F1 of 0.54 is below the proposal's Stage 3 target of 0.82
@@ -485,7 +485,7 @@ class GraphAwareImbalanceSampler:
 ### Future work (post May 11)
 1. Add richer node features (variance of received amounts, time-span of activity, distinct-sender count)
 2. Explore edge classification (predict per-transaction fraud) in addition to node classification
-3. Implement live FastAPI service for Member 4 integration (T8)
+3. Implement live FastAPI service for fusion engine integration (T8)
 4. Deploy on cloud or shared Drive for team integration testing (T10)
 
 ---
@@ -513,8 +513,8 @@ class GraphAwareImbalanceSampler:
 **"Why k=2 for the subgraph extraction?"**
 > PaySim's fraud topology is hub-and-spoke, not multi-hop chains. k=2 captures the sibling-sender convergence pattern: from a flagged transaction, k=2 reaches the mule (1 hop) and the other senders that fed the same mule (2 hops). This is the actual fraud signature in PaySim, empirically confirmed in EDA Section 9.
 
-**"What happens if Member 4's other 2 modules time out?"**
-> Member 4 implements graceful degradation per her FR2. If our endpoint times out, she proceeds with available scores from behavioral and temporal modules and flags the missing modality in the LLM-generated report.
+**"What happens if the other 2 modules time out?"**
+> The fusion engine implements graceful degradation per its FR2. If our endpoint times out, it proceeds with available scores from behavioral and temporal modules and flags the missing modality in the LLM-generated report.
 
 **"Stage 3a beats Stage 3b — doesn't that contradict your novelty?"**
 > No — it refines our claim. The proposal hypothesised Focal Loss + Sampler are jointly necessary. We empirically found that on PaySim with our 5 node features, Focal Loss alone is sufficient for F1, and the Sampler's value is operational stability (training is monotonic) rather than metric improvement. This is honest reporting; the architectural design is still defensible because the Sampler may add value with richer features in future work.
