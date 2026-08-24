@@ -98,9 +98,85 @@ class GraphPredictor:
             risk_threshold=self.threshold,
             max_edges=max_subgraph_edges,
         )
+        # ── Live inductive inference (optional) ─────────────────────────
+        # When the weights and the full feature matrix are present, the
+        # network is loaded and kept in memory so accounts absent from the
+        # precomputed table can still be scored — which is the whole point of
+        # an inductive model, and what makes this a service rather than a
+        # lookup.
+        self.live = None
+        self.live_error = None
+        ckpt = repo_root / "checkpoints" / "temporal_stage3b_v2_seed0.pt"
+        feats = repo_root / "data" / "graph" / "node_features_v2.pt"
+        if ckpt.exists() and feats.exists():
+            try:
+                from graphsage.inference.live import LiveModel
+
+                self.live = LiveModel(ckpt, feats, self.data)
+            except Exception as exc:                    # noqa: BLE001
+                self.live_error = f"{type(exc).__name__}: {exc}"
+        else:
+            self.live_error = "weights or node_features_v2.pt not present"
+
         self.startup_seconds = time.time() - t0
 
     # ------------------------------------------------------------------ #
+
+    def sample_transactions(self, n: int = 20, fraud_ratio: float = 0.08) -> list[dict]:
+        """Draw real edges from the graph as contract-shaped transactions.
+
+        The live monitor needs a stream of genuine records rather than invented
+        ones: these are actual PaySim transfers between actual accounts, so the
+        scores the monitor shows are the model's real output on real input.
+
+        `fraud_ratio` over-samples known-fraud edges relative to the 0.25% base
+        rate. Left at the true rate a demo would screen thousands of clean
+        transactions before anything happened; the alternative is inventing
+        fraud, which is worse. The response says which is which.
+        """
+        import random
+
+        ei = self.data.edge_index
+        n_edges = int(ei.shape[1])
+        n_fraud = max(0, min(n, int(round(n * fraud_ratio))))
+
+        fraud_pool = getattr(self, "_fraud_edge_ids", None)
+        if fraud_pool is None:
+            fraud_pool = (self.data.edge_isFraud == 1).nonzero(as_tuple=True)[0]
+            self._fraud_edge_ids = fraud_pool
+
+        picks: list[int] = []
+        if n_fraud and fraud_pool.numel():
+            picks += [
+                int(fraud_pool[random.randrange(fraud_pool.numel())])
+                for _ in range(n_fraud)
+            ]
+        picks += [random.randrange(n_edges) for _ in range(n - len(picks))]
+        random.shuffle(picks)
+
+        out = []
+        for eid in picks:
+            attr = self.data.edge_attr[eid]
+            amount = round(float(torch.expm1(attr[0]).clamp(min=0)), 2)
+            drain = float(attr[1])
+            old_org = round(amount / drain, 2) if drain > 1e-6 else round(amount * 4, 2)
+            out.append({
+                "transaction_id": f"TX_LIVE_{int(eid)}",
+                "step": int(self.data.edge_step[eid]),
+                "type": "TRANSFER" if float(attr[5]) >= 0.5 else "CASH_OUT",
+                "amount": amount,
+                "nameOrig": str(self.node_names[int(ei[0, eid])]),
+                "nameDest": str(self.node_names[int(ei[1, eid])]),
+                "oldbalanceOrg": old_org,
+                "newbalanceOrig": round(max(old_org - amount, 0.0), 2),
+                "oldbalanceDest": 0.0,
+                "newbalanceDest": amount,
+                "isFlaggedFraud": 0,
+                # Ground truth, for measuring the monitor — never shown as a
+                # model output.
+                "_is_fraud": bool(self.data.edge_isFraud[eid] == 1),
+            })
+        return out
 
     def is_applicable(self, txn_type: str) -> bool:
         return txn_type in APPLICABLE_TYPES
@@ -120,9 +196,21 @@ class GraphPredictor:
 
         dst_id = self.extractor.name_to_id[name_dest]
         score = float(self.probs[dst_id])
+        source = "precomputed"
+
+        # An account with no precomputed score is one the snapshot never saw.
+        # Rather than refuse, run the network over its neighbourhood.
+        if self.live is not None and score <= 0.0:
+            try:
+                raw, _ms = self.live.score_node(dst_id)
+                score = raw
+                source = "live_inference"
+            except Exception:                           # noqa: BLE001
+                pass
         subgraph = self.extractor.extract(trigger, self.probs, self.edge_attention)
         return {
             "relational_risk_score": round(score, 4),
             "confidence": round(max(score, 1.0 - score), 4),
+            "score_source": source,
             "suspicious_subgraph": subgraph,
         }

@@ -29,6 +29,7 @@ from graphsage.api.schemas import (
 from graphsage.inference.predictor import MODEL_VERSION, GraphPredictor
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+START_TS = time.time()
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 def score_to_risk_level(score: float, bands: dict[str, float]) -> RiskLevel:
@@ -153,6 +154,40 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
     @app.get("/demo")
     def demo_page() -> FileResponse:
         return FileResponse(STATIC_DIR / "demo.html")
+
+    @app.get("/api/graph/runtime")
+    def runtime() -> dict:
+        """Is the trained network loaded and serving right now?
+
+        Exposed so an operator can see the model as a running thing — uptime,
+        forward passes performed, mean latency — rather than taking it on
+        trust.
+        """
+        p: GraphPredictor = app.state.predictor
+        live = getattr(p, "live", None)
+        return {
+            "service_uptime_seconds": round(time.time() - START_TS, 1),
+            "serving_mode": "live_inference" if live else "precomputed_only",
+            "precomputed": {
+                "accounts": int(p.data.num_nodes),
+                "transactions": int(p.data.num_edges),
+            },
+            "model": live.stats if live else {
+                "loaded": False, "reason": getattr(p, "live_error", None),
+            },
+        }
+
+    @app.get("/api/graph/sample-transactions")
+    def sample_transactions(n: int = 20, fraud_ratio: float = 0.08) -> dict:
+        """Real transactions for a live monitor to replay.
+
+        These are genuine PaySim edges, so a downstream monitor screens real
+        records through the real model rather than replaying a canned script.
+        """
+        p: GraphPredictor = app.state.predictor
+        n = max(1, min(int(n), 200))
+        ratio = max(0.0, min(float(fraud_ratio), 1.0))
+        return {"transactions": p.sample_transactions(n, ratio)}
 
     @app.get("/api/graph/demo-transactions")
     def demo_transactions() -> FileResponse:
