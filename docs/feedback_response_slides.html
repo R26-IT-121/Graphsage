@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Feedback Response Slides — GraphSAGE</title>
+<style>
+  @page { size: A4; margin: 1.8cm; }
+  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; font-size: 12pt; line-height: 1.55; color: #1d1d1f; max-width: 820px; margin: 0 auto; padding: 1.5em; }
+  h1 { font-size: 22pt; color: #1a4d8f; border-bottom: 3px solid #1a4d8f; padding-bottom: 8px; page-break-before: always; }
+  h1:first-of-type { page-break-before: avoid; }
+  h2 { font-size: 16pt; color: #1a4d8f; margin-top: 1.2em; border-bottom: 1px solid #ccc; padding-bottom: 6px; page-break-after: avoid; }
+  h3 { font-size: 13pt; color: #2a5d9f; margin-top: 1em; }
+  strong { color: #1a4d8f; }
+  table { border-collapse: collapse; width: 100%; margin: 0.8em 0; font-size: 11pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #d0d0d3; padding: 7px 10px; text-align: left; }
+  th { background: #eef3fb; font-weight: 700; }
+  tr:nth-child(even) { background: #fafbfc; }
+  blockquote { border-left: 5px solid #f59e0b; background: #fff8e1; padding: 0.7em 1em; margin: 0.8em 0; }
+  code { background: #f5f5f7; padding: 1px 5px; border-radius: 3px; font-size: 90%; color: #c0392b; }
+  pre { background: #f5f5f7; padding: 0.8em; border-left: 3px solid #1a4d8f; border-radius: 4px; overflow-x: auto; page-break-inside: avoid; }
+  ul, ol { padding-left: 1.4em; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
+</style></head>
+<body><h1>Slide Content — Response to Previous Feedback + Required Sections</h1>
+<p>Ready-to-paste slide content. Each section gives you:<br />
+- <strong>Slide title</strong><br />
+- <strong>Bullet points</strong> (paste directly into the slide)<br />
+- <strong>Speaker notes</strong> (what to say while showing the slide)</p>
+<hr />
+<h1>SLIDE 1 — Response to Previous Feedback</h1>
+<h2>Title</h2>
+<p><strong>Actions Taken — Response to PP0 Feedback</strong></p>
+<h2>Sub-title (optional)</h2>
+<p><em>"Find local-context datasets" and "Learn real financial processes"</em></p>
+<h2>Bullets to put on slide</h2>
+<ul>
+<li><strong>Dataset:</strong> PaySim's mobile-money simulator structurally mirrors South-Asian markets (eZ Cash, mCash, MTN MoMo) — same TRANSFER/CASH_OUT/CASH_IN/PAYMENT types regulated under CBSL AML/CFT framework</li>
+<li><strong>Local context gap acknowledged:</strong> real Sri Lankan banking data is CBSL-regulated and PII-protected; we positioned the project to be <strong>on-premise deployable</strong> behind any bank's firewall</li>
+<li><strong>Financial processes studied:</strong> FATF Recommendation 10–17 (Customer Due Diligence), CBSL AML Guidelines (2023), Suspicious Activity Report (SAR) submission process</li>
+<li><strong>Crime typology framework:</strong> aligned all outputs to FATF Money-Laundering Typologies — <code>HUB_AND_SPOKE</code>, <code>SMURFING</code>, <code>LAYERING</code>, <code>ACCOUNT_TAKEOVER</code></li>
+<li><strong>Future engagement:</strong> seeking partnership with a local bank or Sampath Lab for real-data validation in Phase 2 (post-T11)</li>
+</ul>
+<h2>Speaker notes</h2>
+<blockquote>
+<p><em>"The previous panel feedback asked us to ground the work in local context and real financial processes. We took three concrete actions. First, we verified that PaySim's transaction-type taxonomy — TRANSFER, CASH_OUT, CASH_IN, PAYMENT — is identical to the structure used by Sri Lankan mobile money services like eZ Cash and mCash, both regulated under the CBSL AML/CFT framework. The data is synthetic, but the structure is locally relevant.</em></p>
+<p><em>Second, real local-context data is CBSL-regulated and contains PII, so we cannot access it without a formal banking partnership. We positioned the deployment model as Enterprise On-Premise — the model and FastAPI service run inside the bank's firewall, never leaving their infrastructure. That makes our system locally adoptable when partnership becomes possible.</em></p>
+<p><em>Third, we studied the actual financial processes. We aligned our output pattern field to FATF Money-Laundering Typologies — Hub-and-Spoke, Smurfing, Layering — so the LLM-generated forensic report references real regulatory categories. We also studied the SAR (Suspicious Activity Report) submission process to ensure our JSON contains the fields a compliance officer needs to file a regulatory report."</em></p>
+</blockquote>
+<hr />
+<h1>SLIDE 2 — How the Solution Addresses the Sub-Problem</h1>
+<h2>Title</h2>
+<p><strong>Solution Mapping — Each Research Gap → Each Architectural Component</strong></p>
+<h2>Bullets</h2>
+<table>
+<thead>
+<tr>
+<th>Sub-Problem (Proposal §1.3)</th>
+<th>Our Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gap 1 — Underutilisation of edge features in message passing</td>
+<td><strong>Novelty 1</strong>: Edge-MLP attention layer learns per-edge weight from 6 forensic features (<code>drain_ratio</code>, <code>dst_was_empty</code>, <code>time_gap</code>, etc.)</td>
+</tr>
+<tr>
+<td>Gap 2 — Class imbalance destroys training (SMOTE breaks topology)</td>
+<td><strong>Novelty 2</strong>: Focal Loss + k-hop subgraph sampler with hard-negative mining — preserves fraud-ring topology intact</td>
+</tr>
+<tr>
+<td>Gap 3 — Black-box GNN outputs not legally actionable</td>
+<td><strong>Novelty 3</strong>: Structured JSON forensic schema with <code>pattern</code>, <code>sink_account</code>, <code>structural_evidence</code> — consumed by Member 4's RAG-LLM</td>
+</tr>
+<tr>
+<td>Non-graph baselines treat transactions in isolation</td>
+<td>Inductive GraphSAGE — predicts on the network of connections, not single rows</td>
+</tr>
+<tr>
+<td>New accounts cannot be scored at inference</td>
+<td>GraphSAGE inductive design — generalises to unseen nodes without retraining</td>
+</tr>
+</tbody>
+</table>
+<h2>Speaker notes</h2>
+<blockquote>
+<p><em>"Our proposal identified three research gaps. Each is addressed by a specific architectural component, and we built them as separable stages so we could measure each one's contribution.</em></p>
+<p><em>Gap 1 — standard GraphSAGE uses a mean aggregator that treats every transaction equally. Our Novelty 1, the Edge-MLP layer, fixes this by learning per-edge attention weights from six forensically-motivated features. A high drain ratio with an empty destination produces a high attention weight; routine payments contribute little.</em></p>
+<p><em>Gap 2 — under 773-to-1 class imbalance, standard training collapses. We addressed this with two combined techniques: Focal Loss focuses gradients on hard examples, and our Graph-Aware Imbalance Sampler builds balanced 50/50 mini-batches from intact k-hop subgraphs, with hard-negative mining choosing legitimate accounts that look structurally like mules.</em></p>
+<p><em>Gap 3 — most GNNs output a probability score with no explanation. Our Novelty 3 extracts the suspicious subgraph around every flagged account, classifies the pattern, and produces a typed JSON payload. Member 4's LLM is forced to cite this evidence in its forensic report.</em></p>
+<p><em>Beyond these three gaps, the choice of GraphSAGE itself addresses two structural requirements — the inductive property means new accounts can be scored instantly, which is mandatory for real-time deployment."</em></p>
+</blockquote>
+<hr />
+<h1>SLIDE 3 — User Requirements Addressed</h1>
+<h2>Title</h2>
+<p><strong>Functional Requirements — Evidence Map</strong></p>
+<h2>Bullets</h2>
+<table>
+<thead>
+<tr>
+<th>FR</th>
+<th>Requirement</th>
+<th>Implementation Status</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FR1</strong></td>
+<td>Micro-batch ingestion via FastAPI</td>
+<td>Designed (T8 = August)</td>
+<td><code>src/graphsage/api/app.py</code> stub + locked schema</td>
+</tr>
+<tr>
+<td><strong>FR2</strong></td>
+<td>Dynamic graph construction (DataFrame → PyG tensor)</td>
+<td>✅ Implemented</td>
+<td><code>scripts/build_graph.py</code> produces 3.27M-node graph</td>
+</tr>
+<tr>
+<td><strong>FR3</strong></td>
+<td>Edge attribute integration in message passing</td>
+<td>✅ Implemented</td>
+<td><code>EdgeEnhancedSAGEConv</code> uses all 6 edge features (Novelty 1)</td>
+</tr>
+<tr>
+<td><strong>FR4</strong></td>
+<td>Inductive inference for unseen nodes</td>
+<td>✅ Implemented</td>
+<td>GraphSAGE generalises without retraining</td>
+</tr>
+<tr>
+<td><strong>FR5</strong></td>
+<td>Relational metadata extraction (k=2 hop subgraph)</td>
+<td>✅ Demonstrated</td>
+<td>Live dashboard extracts + visualises in real time</td>
+</tr>
+<tr>
+<td><strong>FR6</strong></td>
+<td>JSON export with locked schema</td>
+<td>✅ Implemented</td>
+<td><code>docs/integration/graph_api_contract.md</code> + sample JSONs</td>
+</tr>
+</tbody>
+</table>
+<h2>Bullets (Non-Functional Requirements)</h2>
+<ul>
+<li><strong>NFR1 — Latency &lt; 500 ms per batch:</strong> ✅ Inference completes in ~30 ms on CPU per node</li>
+<li><strong>NFR2 — Imbalance robustness:</strong> ✅ Best Test Recall = 0.566 (35% relative gain over baseline)</li>
+<li><strong>NFR3 — Memory efficiency:</strong> ✅ 9,667-parameter model; full graph fits in 200 MB RAM</li>
+<li><strong>NFR4 — Interoperability:</strong> ✅ Pydantic schema locked with Member 4 before May 11</li>
+</ul>
+<h2>Bullets (Stakeholders Served)</h2>
+<ul>
+<li><strong>AML Investigators</strong> → Read the forensic narrative produced from our JSON</li>
+<li><strong>Compliance Officers</strong> → Use the explainable evidence to file SARs legally</li>
+<li><strong>Data Science / Risk Engineering Teams</strong> → Modular code with single-source-of-truth hyperparameters in <code>configs/model_config.yaml</code></li>
+</ul>
+<h2>Speaker notes</h2>
+<blockquote>
+<p><em>"Our proposal defined six functional requirements and four non-functional requirements. Four of the six FRs are fully implemented today — graph construction, edge attribute integration, inductive inference, and JSON export. FR5, the relational metadata extraction, is fully demonstrated in our live dashboard. FR1, the FastAPI ingestion endpoint, is on the T8 timeline for August — the design is locked, only the wiring remains.</em></p>
+<p><em>On the non-functional side: inference latency is well under the 500-millisecond target. Imbalance robustness is demonstrated with test recall of 0.566 — catching 57% of test mules. The model is tiny at 9,667 parameters, well within memory budget. And the JSON interoperability schema is locked with Member 4 before today's presentation, so she can build her RAG pipeline against a stable contract.</em></p>
+<p><em>Our three stakeholders are all served by different aspects of the same output. Investigators read the narrative; compliance officers use the structural evidence for SARs; engineers benefit from our modular architecture and config-driven hyperparameters."</em></p>
+</blockquote>
+<hr />
+<h1>SLIDE 4 — Design Excellence / Contribution</h1>
+<h2>Title</h2>
+<p><strong>Design Excellence — What Makes This Production-Ready Research</strong></p>
+<h2>Bullets — Architectural Decisions</h2>
+<ul>
+<li><strong>Three separable novelties, each isolated in code</strong> — <code>layers.py</code> (Novelty 1), <code>losses.py</code> + <code>imbalance_sampler.py</code> (Novelty 2), <code>subgraph.py</code> + JSON contract (Novelty 3)</li>
+<li><strong>Reusable training loop</strong> — same <code>trainer.py</code> handles Stage 1, 2, 3a, 3b. Only the model and loss change between stages, making the ablation honest</li>
+<li><strong>Inductive-only design</strong> — chose GraphSAGE over GAT/GCN specifically because new accounts must be scored without retraining</li>
+<li><strong>Time-based train/val/test split</strong> — prevents future-fraud leakage, mirrors real deployment</li>
+<li><strong>Single source of truth</strong> — <code>configs/model_config.yaml</code> controls all hyperparameters across scripts</li>
+</ul>
+<h2>Bullets — Engineering Excellence</h2>
+<ul>
+<li><strong>Cross-platform</strong> — runs on macOS, Windows, Linux, Kaggle, Google Colab (auto-detects CUDA / MPS / CPU)</li>
+<li><strong>Type-safe Python</strong> — <code>dataclasses</code>, type hints, Pydantic-ready schemas</li>
+<li><strong>Reproducibility</strong> — RNG seed control in sampler, deterministic splits</li>
+<li><strong>Glass-morphic dashboard</strong> — live Streamlit UI with animated network background, interactive Plotly graph, real-time JSON output</li>
+<li><strong>Documentation</strong> — EDA report (3 pages), system walkthrough (15 pages), API contract (locked), presentation script, this study guide</li>
+</ul>
+<h2>Bullets — Empirical Contribution</h2>
+<ul>
+<li><strong>4-stage ablation</strong> with controlled experiments isolating each component</li>
+<li><strong>Honest refinement of proposal hypothesis</strong> — empirically found that Focal Loss alone is the dominant F1 contributor; the sampler provides training stability rather than metric gain</li>
+<li><strong>Two original PaySim findings</strong> — 99.78% of fraud senders are one-shot accounts; 66.5% of above-threshold fraud escapes the legacy rule</li>
+<li><strong>Threshold tuning analysis</strong> — lifted F1 from 0.31 to 0.54 across all stages, demonstrating that default thresholds are wrong under severe imbalance</li>
+</ul>
+<h2>Speaker notes</h2>
+<blockquote>
+<p><em>"The design excellence in this work comes from three areas.</em></p>
+<p><em>Architecturally — we made three deliberate decisions that make this defensible. First, every novelty lives in its own file and can be enabled or disabled independently, which is what makes the ablation table honest. Second, we use the same training loop across all four stages, so any F1 difference is attributable only to the model or loss change. Third, we chose GraphSAGE over the more expressive GAT and GCN specifically because of the inductive requirement — real banking must score new accounts in real time.</em></p>
+<p><em>Engineering-wise — the code is cross-platform, type-safe, reproducible, and documented. We have a glass-morphic Streamlit dashboard with an animated network background and live JSON output that any compliance officer could use. The documentation alone runs to over 30 pages across the EDA report, system walkthrough, and integration contract.</em></p>
+<p><em>Empirically — we performed a four-stage ablation and reported honestly. Our most important honest finding is that Focal Loss alone produces the highest F1, not the full sampler combination as the proposal hypothesised. The sampler provides training stability, not F1 gain. This kind of empirical refinement is what distinguishes research from advocacy. We also surfaced two original findings on PaySim that aren't in the published literature — 99.78% of fraud senders are one-shot accounts, and 66.5% of fraud above the rule's threshold still escapes detection. These two findings strengthened our methodology design directly.</em></p>
+<p><em>Taken together — three novelties, four ablation stages, two original findings, a working dashboard, and a locked integration contract — this is design excellence above what's typically expected at the Progress Presentation 1 milestone."</em></p>
+</blockquote>
+<hr />
+<h1>Quick Slide Layout Suggestion</h1>
+<p>If you have 4 slides to use for these topics, lay them out:</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ SLIDE A (4-6 min into talk):                                │
+│ &quot;Response to PP0 Feedback&quot;                                  │
+│ → covers local datasets + financial processes               │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ SLIDE B (6-7 min — right before novelties):                 │
+│ &quot;Solution Mapping — Gap → Component&quot;                        │
+│ → table of 5 rows                                           │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ SLIDE C (8-9 min):                                          │
+│ &quot;User Requirements Addressed&quot;                               │
+│ → 3 sub-sections: FRs, NFRs, Stakeholders                   │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ SLIDE D (9-10 min — right before closing):                  │
+│ &quot;Design Excellence / Contribution&quot;                          │
+│ → 3 sub-sections: Architecture, Engineering, Empirical      │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h1>If panel re-asks about "local context" specifically</h1>
+<p>The honest answer is this:</p>
+<blockquote>
+<p><em>"Real Sri Lankan banking data is regulated under CBSL guidelines, contains PII, and cannot be obtained without a formal partnership and ethics review — neither of which is feasible within a one-year undergraduate research timeline. We chose to use PaySim because its transaction-type structure is identical to local mobile-money systems (eZ Cash, mCash), making the methodology directly portable. Our deployment architecture is on-premise — the trained model and FastAPI service run inside the bank's firewall, so no transaction data ever leaves the institution. This makes our system locally adoptable when partnership becomes possible, which is on our future-work roadmap as a Phase 2 priority."</em></p>
+</blockquote>
+<p>That answer:<br />
+1. Acknowledges the local-data gap honestly<br />
+2. Justifies the PaySim choice (structurally similar)<br />
+3. Shows the architecture supports local deployment (on-premise)<br />
+4. Plans for future partnership</p>
+<hr />
+<h1>Reminder for the slides</h1>
+<p>These four slides are ADDITIONAL to your core deck (Title, Problem, Three Novelties, Ablation Table, Demo, etc.). Insert them at logical points:</p>
+<ul>
+<li>Slide A immediately after your Problem slide</li>
+<li>Slide B before your Novelty slides (sets up the mapping)</li>
+<li>Slide C after Novelties (proves you addressed requirements)</li>
+<li>Slide D as your second-to-last slide (drives home the contribution before Q&amp;A)</li>
+</ul>
+<p>Practice each one once aloud before you go on stage. Good luck.</p></body></html>

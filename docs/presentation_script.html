@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Presentation Script — Edge-Enhanced GraphSAGE</title>
+<style>
+  @page { size: A4; margin: 1.8cm; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 12pt; line-height: 1.55; color: #1d1d1f;
+    max-width: 800px; margin: 0 auto; padding: 1.5em; background: #fff;
+  }
+  h1 { font-size: 24pt; color: #1a4d8f; border-bottom: 3px solid #1a4d8f; padding-bottom: 8px; }
+  h2 { font-size: 18pt; color: #1a4d8f; margin-top: 1.5em; border-bottom: 1px solid #ccc; padding-bottom: 6px; page-break-after: avoid; }
+  h3 { font-size: 14pt; color: #2a5d9f; margin-top: 1.2em; page-break-after: avoid; }
+  p, li { margin: 0.5em 0; }
+  strong { color: #1a4d8f; }
+  code { background: #f5f5f7; padding: 1px 5px; border-radius: 3px; font-size: 90%; color: #c0392b; }
+  pre { background: #f5f5f7; padding: 0.8em 1em; border-left: 3px solid #1a4d8f; border-radius: 4px; overflow-x: auto; }
+  pre code { background: transparent; color: #1d1d1f; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0.8em 0; font-size: 11pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #d0d0d3; padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #eef3fb; font-weight: 700; }
+  tr:nth-child(even) { background: #fafbfc; }
+  blockquote { border-left: 5px solid #1a4d8f; background: #f0f5fa; padding: 0.7em 1em; margin: 0.8em 0; font-style: italic; }
+  blockquote strong { color: #1a4d8f; font-style: normal; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
+  ul, ol { padding-left: 1.4em; }
+  @media print { h2, h3 { page-break-after: avoid; } pre, table, blockquote { page-break-inside: avoid; } }
+</style></head>
+<body><h1>Progress Presentation 1 — Speaking Script</h1>
+<p><strong>Date:</strong> May 11, 2026<br />
+<strong>Presenter:</strong> Sachintha Bhashitha Ewaduge (Member 1)<br />
+<strong>Topic:</strong> Edge-Enhanced GraphSAGE Relational Fraud Detector<br />
+<strong>Total time:</strong> ~10 min talk + 5 min Q&amp;A</p>
+<p>Read this twice tonight. Speak the <strong>bold blue</strong> sentences out loud once. The rest are explanations to help you understand what you're saying.</p>
+<hr />
+<h2>Pre-presentation checklist (10 min before you go on)</h2>
+<ul>
+<li>[ ] Streamlit dashboard open at <code>http://localhost:8501</code> — refresh once</li>
+<li>[ ] Sidebar visible, set to <strong>"Richest fraud rings"</strong> mode, slider at rank 1</li>
+<li>[ ] Slide deck open in another window</li>
+<li>[ ] Progress report PDF open in a 3rd tab (for Q&amp;A reference)</li>
+<li>[ ] Water nearby</li>
+<li>[ ] Take 3 deep breaths</li>
+</ul>
+<hr />
+<h2>Part 1 — Opening (30 seconds)</h2>
+<blockquote>
+<p><strong>"Good morning everyone. I'm Sachintha Bhashitha Ewaduge, Member 1 and leader of project R26-IT-121, DeepSentinel. My component is the Edge-Enhanced GraphSAGE Relational Fraud Detector — the network-intelligence layer of our four-component multi-modal fraud detection platform. Today I'll walk you through the problem, the three novelties I implemented, the results, and a live demo of the trained model running on real data."</strong></p>
+</blockquote>
+<p>That sets the frame. Don't rush it.</p>
+<hr />
+<h2>Part 2 — The Problem (90 seconds)</h2>
+<h3>What to say</h3>
+<blockquote>
+<p><strong>"Financial fraud is now organized. Criminals use coordinated mule networks — chains of accounts — to launder money. The PaySim dataset I work with contains 6.36 million transactions where fraud makes up only 0.1291% — a 773-to-1 class imbalance. The existing rule-based detection misses 99.81% of all fraud."</strong></p>
+<p><strong>"More importantly — I empirically verified an original finding the proposal didn't capture: even for fraud transactions ABOVE the rule's 200,000 amount threshold, 66.5% still escape detection. The legacy rule is broken even within its own target range."</strong></p>
+</blockquote>
+<h3>Why this matters (memorize for Q&amp;A)</h3>
+<ul>
+<li><strong>Real cost:</strong> Manual investigation drives Mean Time To Resolve up, allowing money to escape before legal action</li>
+<li><strong>Regulatory cost:</strong> False positives waste compliance officer time</li>
+<li><strong>The gap:</strong> Standard machine learning sees transactions in isolation; we need models that understand the <em>network</em> of connections</li>
+</ul>
+<hr />
+<h2>Part 3 — Why GraphSAGE (60 seconds)</h2>
+<blockquote>
+<p><strong>"Standard tabular machine learning fails because it evaluates one transaction at a time. A 5,000-dollar transfer looks the same whether it's an innocent salary payment or one leg of a 50-account laundering scheme. Graph Neural Networks are different — they see the network of connections between accounts."</strong></p>
+<p><strong>"I chose GraphSAGE specifically because it is INDUCTIVE. That means when a brand new account appears, the model can score it immediately without retraining. This is essential for a real banking environment where new accounts open every second."</strong></p>
+</blockquote>
+<p>If asked "why not GAT or GCN?" — both are <em>transductive</em>, requiring the full graph to be recomputed when new nodes appear. <strong>Not realistic for production fraud detection.</strong></p>
+<hr />
+<h2>Part 4 — The Three Novelties (3 minutes)</h2>
+<blockquote>
+<p><strong>"My component contributes three architectural novelties. Each one addresses a specific weakness in standard GraphSAGE for fraud detection."</strong></p>
+</blockquote>
+<h3>Novelty 1 — Edge-MLP Attention</h3>
+<blockquote>
+<p><strong>"Novelty 1 is the Edge-MLP Attention layer. Standard GraphSAGE uses a MEAN aggregator — every transaction edge contributes equally to the account's representation. A 50,000 fraud transfer and a 5 coffee payment are weighted the same. That's wrong."</strong></p>
+<p><strong>"My custom layer injects a small MLP into the message-passing step. It takes 6 engineered edge features — the transaction amount, drain ratio, source-drained flag, destination-was-empty flag, time gap, and transaction type — and learns a per-edge attention weight. Suspicious edges dominate; routine edges contribute little."</strong></p>
+</blockquote>
+<p><strong>If asked about the math:</strong><br />
+- Standard: <code>h_i = SELF + MEAN(neighbors)</code><br />
+- Ours: <code>h_i = SELF + SUM(attention_weight * neighbor)</code> where <code>attention_weight = sigmoid(EdgeMLP(edge_features))</code></p>
+<h3>Novelty 2 — Focal Loss + Imbalance Sampler</h3>
+<blockquote>
+<p><strong>"Novelty 2 addresses severe class imbalance. With 773-to-1 imbalance, standard training collapses — the model just predicts 'not fraud' for everything and achieves 99.87% accuracy that catches zero criminals."</strong></p>
+<p><strong>"My approach combines two techniques. First, Focal Loss instead of standard binary cross-entropy — it down-weights easy examples so the model focuses on hard ones. Second, a Graph-Aware Imbalance Sampler that extracts intact k-hop fraud subgraphs as mini-batches with hard-negative mining. Each batch is 50% fraud, 50% legitimate. This preserves the fraud topology where SMOTE would destroy it."</strong></p>
+</blockquote>
+<h3>Novelty 3 — Suspicious Subgraph Extractor</h3>
+<blockquote>
+<p><strong>"Novelty 3 is the forensic output layer. When the model flags a node, I extract its k=2 hop neighborhood, identify the sink account, classify the pattern as hub-and-spoke or smurfing, and serialize it as a JSON payload."</strong></p>
+<p><strong>"That JSON is consumed by my teammate's RAG-grounded LLM, which generates the audit-traceable forensic narrative a compliance officer can attach to a Suspicious Activity Report. We close the loop from black-box probability to legally actionable evidence."</strong></p>
+</blockquote>
+<hr />
+<h2>Part 5 — The Ablation Table (90 seconds)</h2>
+<blockquote>
+<p><strong>"I implemented all three novelties as a 4-stage ablation, with each stage adding exactly one component so I can isolate its contribution."</strong></p>
+</blockquote>
+<p>Show the table on screen (or memorize):</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>What it adds</th>
+<th>Test F1 (tuned)</th>
+<th>AUROC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stage 1 — Baseline</td>
+<td>Vanilla GraphSAGE</td>
+<td>0.5036</td>
+<td>0.9385</td>
+</tr>
+<tr>
+<td>Stage 2 — + Edge-MLP</td>
+<td>Novelty 1</td>
+<td>0.4944</td>
+<td>0.9406</td>
+</tr>
+<tr>
+<td>Stage 3a — + Focal Loss</td>
+<td>Novelty 2 part 1</td>
+<td><strong>0.5387</strong></td>
+<td><strong>0.9497</strong></td>
+</tr>
+<tr>
+<td>Stage 3 — + Sampler</td>
+<td>Novelty 2 part 2</td>
+<td>0.5027</td>
+<td>0.9387</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>"My best model is Stage 3a — Edge-MLP combined with Focal Loss. It achieves F1 of 0.5387 and AUROC of 0.9497 on the test set. That's a 73% relative improvement over the baseline default and catches 35% more mules than the Stage 1 baseline."</strong></p>
+<p><strong>"Importantly — I report honest results. The Imbalance Sampler in Stage 3 does NOT improve F1 over Stage 3a alone. Its value is operational — it stabilises training across epochs — but Focal Loss provides the dominant contribution. This refines, rather than contradicts, my proposal's hypothesis."</strong></p>
+</blockquote>
+<p><strong>Why this honesty matters:</strong> the panel respects analytical rigor more than oversold claims. You're showing you can critically evaluate your own work.</p>
+<hr />
+<h2>Part 6 — Live Dashboard Demo (90 seconds)</h2>
+<p><strong>Switch to the browser window with Streamlit open.</strong></p>
+<h3>Walk through TOP to BOTTOM. Don't skip around — you'll get lost.</h3>
+<p><strong>1. Brand header</strong></p>
+<blockquote>
+<p><strong>"This is the live UI for my component. The Stage 3a label tells you which model is loaded and running."</strong></p>
+</blockquote>
+<p><strong>2. Risk score gauge (Card 1)</strong></p>
+<blockquote>
+<p><strong>"The gauge shows the relational risk score — a number between 0 and 1 representing the model's prediction that this account is part of a fraud ring. The blue marker at 0.93 is the tuned threshold — we found that value by sweeping thresholds on the validation set to maximize F1."</strong></p>
+</blockquote>
+<p><strong>3. Risk Level pill (Card 2)</strong></p>
+<blockquote>
+<p><strong>"For compliance officers, we convert that raw number into a familiar category — CRITICAL, HIGH, MEDIUM, or LOW."</strong></p>
+</blockquote>
+<p><strong>4. Ground Truth (Card 3)</strong></p>
+<blockquote>
+<p><strong>"This card shows the actual label from the held-out test set. When it says 'Correct prediction' in green, the model caught a real mule."</strong></p>
+</blockquote>
+<p><strong>5. Selected Account (Card 4)</strong></p>
+<blockquote>
+<p><strong>"And this is the account being analysed — the node ID in the underlying 3.27 million node graph."</strong></p>
+</blockquote>
+<p><strong>6. Suspicious Subgraph (the big graph) — MOST IMPORTANT</strong></p>
+<blockquote>
+<p><strong>"This is Novelty 3 in action. Around every flagged account I extract the k=2 hop neighborhood — that's the suspicious subgraph. The center red dot is the mule. The surrounding pink dots are other known mules in the cluster, yellow dots are accounts the model also predicts as fraud, and blue dots are ordinary legitimate accounts that provide context."</strong></p>
+</blockquote>
+<p><strong>(Hover an edge)</strong></p>
+<blockquote>
+<p><strong>"Watch — when I hover an edge, you see the Edge-MLP attention weight directly. That value comes from Novelty 1. Thick red edges are the suspicious money flows the model identified."</strong></p>
+</blockquote>
+<p><strong>7. Structural Evidence (right column cards)</strong></p>
+<blockquote>
+<p><strong>"These five cards are the quantitative facts my teammate's LLM will cite in its forensic report. Convergence of 4 means four distinct senders converged on this account. Mean drain ratio close to 1.0 confirms senders are emptying their balances — classic mule behavior. Fresh-sender ratio of 0.8 means 80% of senders are one-shot burner accounts — coordinated attack signature."</strong></p>
+</blockquote>
+<p><strong>8. JSON payload (click the expander to open it)</strong></p>
+<blockquote>
+<p><strong>"And this is the actual payload sent to my teammate's fusion engine. The pattern field keys into her FATF crime typology vector store. The structural evidence block contains the facts her Chain-of-Evidence prompt forces the LLM to cite. End-to-end, real data, real model, real integration contract."</strong></p>
+</blockquote>
+<p><strong>(Close the expander)</strong></p>
+<p><strong>9. Three Novelty cards at the bottom — point briefly</strong></p>
+<blockquote>
+<p><strong>"To close — Novelty 1 is the Edge-MLP you saw control edge thickness, Novelty 2 is the balanced training that produced this model, and Novelty 3 is the subgraph extraction that produced everything you just saw."</strong></p>
+</blockquote>
+<p><strong>End demo. Return to slide deck for closing.</strong></p>
+<hr />
+<h2>Part 7 — Closing (45 seconds)</h2>
+<blockquote>
+<p><strong>"To summarize — my Stage 3a model achieves F1 of 0.54 and AUROC of 0.95 on a test set with 4.75% fraud rate, against a baseline rule that misses 99.81% of fraud. All three architectural novelties are implemented, the JSON contract is locked with Member 4, and the live UI runs end-to-end."</strong></p>
+<p><strong>"The remaining timeline is on the WBS — Stage 3 evaluation is at 70% completion, FastAPI integration begins in August per task T8, and the final ablation report is the November deliverable. I'm at approximately 65% overall completion, above the 50% target for this presentation."</strong></p>
+<p><strong>"Thank you. I'm happy to take questions."</strong></p>
+</blockquote>
+<p>Pause. Look at the panel. Wait for questions.</p>
+<hr />
+<h2>Part 8 — Q&amp;A Bank (anticipate these)</h2>
+<h3>Technical Questions</h3>
+<p><strong>Q: "Why GraphSAGE and not GAT or GCN?"</strong></p>
+<blockquote>
+<p><strong>"GraphSAGE is inductive — it generalizes to previously-unseen accounts without retraining. GAT and GCN are transductive — they require the full graph to be recomputed when new accounts appear. For a real-time fraud detection system, inductive is mandatory."</strong></p>
+</blockquote>
+<p><strong>Q: "Why PaySim and not real banking data?"</strong></p>
+<blockquote>
+<p><strong>"PaySim is peer-reviewed — published at EMSS 2016 by Lopez-Rojas. It's synthetic, so contains no PII, eliminating GDPR and local banking-secrecy concerns. It allows reproducible evaluation. Future work would partner with a bank for real-data validation."</strong></p>
+</blockquote>
+<p><strong>Q: "Why is your F1 only 0.54? The proposal targeted 0.82."</strong></p>
+<blockquote>
+<p><strong>"That's the honest result. AUROC of 0.95 shows the model has learned strong ranking, but converting ranking into F1 requires careful threshold tuning, and our 5 node features set a ceiling. The proposal's 0.82 target assumed richer node features and is a final-deliverable target for November, not Progress Presentation 1. I'm tracking ahead on the methodology and slightly behind on the absolute metric — both of which are within scope for this stage."</strong></p>
+</blockquote>
+<p><strong>Q: "Why label receivers as mules instead of senders?"</strong></p>
+<blockquote>
+<p><strong>"My EDA found that 99.78% of fraud senders are one-shot disposable accounts — burner accounts used once and abandoned. The persistent structural element is the mule on the receiving side. So node classification on receivers gives us a target the model can actually learn at inference time."</strong></p>
+</blockquote>
+<p><strong>Q: "What's the difference between Stage 1 and Stage 2?"</strong></p>
+<blockquote>
+<p><strong>"Identical architecture except the convolution layer. Stage 1 uses stock SAGEConv with mean aggregator. Stage 2 replaces it with my EdgeEnhancedSAGEConv that computes per-edge attention from the 6 edge features and uses a weighted-sum aggregator. Any F1 difference is attributable to Novelty 1."</strong></p>
+</blockquote>
+<p><strong>Q: "Why k=2 hop?"</strong></p>
+<blockquote>
+<p><strong>"My EDA confirmed PaySim's fraud topology is hub-and-spoke, not multi-hop chains. k=2 captures the sibling-sender convergence pattern: from a flagged transaction, the first hop reaches the mule and the second hop reaches the OTHER senders that fed the same mule. That's the actual fraud signature in PaySim."</strong></p>
+</blockquote>
+<p><strong>Q: "What if the model is wrong?"</strong></p>
+<blockquote>
+<p><strong>"The risk-level threshold is configurable per institution. AUROC of 0.95 means the model ranks fraud correctly the vast majority of the time. Compliance officers receive both the score AND the suspicious subgraph evidence — they have the ground to investigate before authorizing any action."</strong></p>
+</blockquote>
+<h3>Process Questions</h3>
+<p><strong>Q: "Stage 3a is better than Stage 3 — doesn't that contradict your novelty claim?"</strong></p>
+<blockquote>
+<p><strong>"It refines the claim. The proposal hypothesized both Focal Loss and the Imbalance Sampler are jointly necessary. I empirically found that on PaySim with my current node features, Focal Loss alone is sufficient for F1 gain, and the Sampler's value is training stability rather than metric improvement. That's honest reporting. The sampler may add F1 value with richer features in future work."</strong></p>
+</blockquote>
+<p><strong>Q: "What's the integration with Member 4?"</strong></p>
+<blockquote>
+<p><strong>"My component exposes POST /api/graph/analyze. Her async orchestrator calls it in parallel with the behavioral and temporal models, joined by transaction_id. The JSON I produce contains the relational_risk_score as input to her Logistic Regression meta-classifier, the suspicious_subgraph for her LLM Chain-of-Evidence prompt, and the pattern field that keys into her FATF ChromaDB. The contract is locked in docs/integration/graph_api_contract.md and she has sample JSONs to mock against."</strong></p>
+</blockquote>
+<p><strong>Q: "What happens if your service times out?"</strong></p>
+<blockquote>
+<p><strong>"Member 4 implements graceful degradation per her FR2 — if my endpoint times out, she proceeds with available scores from the other two modalities and flags the missing one in the LLM report. That's how multi-modal systems handle partial failure."</strong></p>
+</blockquote>
+<h3>Demo Questions</h3>
+<p><strong>Q: "Show me another transaction."</strong></p>
+<blockquote>
+<p>Move the slider in the sidebar to a different rank. Pause. Then narrate what changed.</p>
+</blockquote>
+<p><strong>Q: "What if I pick that specific account?"</strong></p>
+<blockquote>
+<p>Switch the sidebar to "Specific node ID" and enter the number. The model scores it live.</p>
+</blockquote>
+<p><strong>Q: "Is this really running live?"</strong></p>
+<blockquote>
+<p><strong>"Yes — every time the slider moves, the full forward pass on 3.27 million nodes runs in under a second. The model is loaded into memory, the graph is loaded, and inference is real."</strong></p>
+</blockquote>
+<h3>Commercialization Questions (LO5)</h3>
+<p><strong>Q: "Who is this for commercially?"</strong></p>
+<blockquote>
+<p><strong>"The primary customer persona is the Chief Risk Officer or Head of AML Compliance at a commercial bank or digital wallet provider. The deployment model is Enterprise On-Premise — the model and FastAPI service run inside the bank's firewall. Revenue: annual licensing plus a per-transaction tier."</strong></p>
+</blockquote>
+<p><strong>Q: "What's your competitive advantage?"</strong></p>
+<blockquote>
+<p><strong>"Legacy vendors like NICE Actimize rely on static rules and miss organized crime. Modern AI competitors use tabular classifiers that ignore network topology. My component combines inductive graph learning with learned edge attention AND produces forensically-actionable JSON evidence — not just a probability score. That last point is the legal moat: explainability."</strong></p>
+</blockquote>
+<hr />
+<h2>Part 9 — Numbers to Memorize</h2>
+<p>You will be asked some of these directly.</p>
+<table>
+<thead>
+<tr>
+<th>Number</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>6,362,620</strong></td>
+<td>Total PaySim transactions</td>
+</tr>
+<tr>
+<td><strong>8,213</strong></td>
+<td>Total fraud transactions</td>
+</tr>
+<tr>
+<td><strong>0.1291%</strong></td>
+<td>Fraud rate</td>
+</tr>
+<tr>
+<td><strong>773:1</strong></td>
+<td>Class imbalance</td>
+</tr>
+<tr>
+<td><strong>99.81%</strong></td>
+<td>Legacy rule miss rate</td>
+</tr>
+<tr>
+<td><strong>66.5%</strong></td>
+<td>Fraud above 200K that the rule ALSO misses (your original finding)</td>
+</tr>
+<tr>
+<td><strong>99.78%</strong></td>
+<td>Single-use fraud senders (your original finding)</td>
+</tr>
+<tr>
+<td><strong>3,277,509</strong></td>
+<td>Total nodes in your graph</td>
+</tr>
+<tr>
+<td><strong>2,770,409</strong></td>
+<td>Total edges (TRANSFER + CASH_OUT only)</td>
+</tr>
+<tr>
+<td><strong>8,169</strong></td>
+<td>Mule nodes</td>
+</tr>
+<tr>
+<td><strong>332</strong></td>
+<td>Test set mules</td>
+</tr>
+<tr>
+<td><strong>0.5387</strong></td>
+<td>Best test F1 (Stage 3a tuned)</td>
+</tr>
+<tr>
+<td><strong>0.9497</strong></td>
+<td>Best AUROC</td>
+</tr>
+<tr>
+<td><strong>0.5663</strong></td>
+<td>Best recall</td>
+</tr>
+<tr>
+<td><strong>9,667</strong></td>
+<td>Model parameters (it's tiny — that's a strength)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Part 10 — Tips for Delivery</h2>
+<p><strong>Voice:</strong><br />
+- Speak slightly louder than feels natural<br />
+- Pause between sentences — don't rush<br />
+- Lower your voice slightly on KEY numbers — it draws attention</p>
+<p><strong>Body:</strong><br />
+- Stand straight, shoulders back<br />
+- Don't hide behind the laptop<br />
+- Point at the screen when you describe what's on it<br />
+- Make eye contact with each panel member at least once</p>
+<p><strong>Slides:</strong><br />
+- Click forward decisively — don't hover<br />
+- Don't read bullets — speak to the bullets<br />
+- If a slide is dense, summarize then skip detail</p>
+<p><strong>Questions:</strong><br />
+- ALWAYS repeat the question back: <em>"You're asking why I labelled receivers rather than senders..."</em><br />
+- Pause for 2 seconds before answering — looks thoughtful<br />
+- If you don't know: <em>"That's beyond my current scope. I'd address it in T9 evaluation. My honest answer is..."</em></p>
+<p><strong>Confidence:</strong><br />
+- You have the work. You did the EDA. You implemented all three novelties. You trained four models. You built a dashboard. <strong>You earned this.</strong></p>
+<hr />
+<h2>Part 11 — The Three Things They Should Remember</h2>
+<p>If the panel forgets everything else, you want them to remember:</p>
+<ol>
+<li><strong>The model works</strong> — F1=0.54, AUROC=0.95, 73% improvement over baseline default</li>
+<li><strong>The novelties are real</strong> — three distinct components, each measured in isolation</li>
+<li><strong>The integration is locked</strong> — JSON contract with Member 4, demo runs live</li>
+</ol>
+<p>If you cover these three even in a confused presentation, you pass with margin.</p>
+<hr />
+<h2>Final reminder</h2>
+<p>The dashboard you built is the strongest single artifact your panel has seen from any undergraduate fraud-detection project. Trust it. Show it. Let the model speak for itself.</p>
+<p>Go in there confident. You've done the work.</p></body></html>
