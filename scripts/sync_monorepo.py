@@ -49,12 +49,17 @@ def main() -> int:
         print(f"error: {dst_root} not found — pass --monorepo", file=sys.stderr)
         return 2
 
-    ours = tracked_files(REPO_ROOT)
+    # Repo-scoped config that is correctly different on each side: the
+    # monorepo's ignore paths are prefixed with GraphSage/ and it carries rules
+    # for other members' folders. Mirroring it would break both.
+    REPO_LOCAL = {Path(".gitignore")}
+
+    ours = tracked_files(REPO_ROOT) - REPO_LOCAL
     theirs = {
         p.relative_to("GraphSage")
         for p in tracked_files(args.monorepo)
         if p.parts and p.parts[0] == "GraphSage"
-    }
+    } - REPO_LOCAL
 
     missing = sorted(ours - theirs)                       # here, not there
     extra = sorted(theirs - ours)                         # there, not here
