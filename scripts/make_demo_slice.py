@@ -123,9 +123,23 @@ def main() -> int:
     rng.shuffle(clean)
 
     if args.verify:
-        print(f"  checking each row anchors in the graph at {args.verify} ...")
-        fraud = [r for r in fraud if resolves(args.verify, r)][: args.fraud]
-        clean = [r for r in clean if resolves(args.verify, r)][: args.clean]
+        # Stop as soon as enough rows have passed. Filtering the whole
+        # candidate list first would be one HTTP call per row — 5,217 of them
+        # on the real test window, to keep 50.
+        def take(cands: list[dict], want: int, label: str) -> list[dict]:
+            kept, checked = [], 0
+            for row in cands:
+                if len(kept) >= want:
+                    break
+                checked += 1
+                if resolves(args.verify, row):
+                    kept.append(row)
+            print(f"    {label}: kept {len(kept)}/{want} after checking {checked}")
+            return kept
+
+        print(f"  checking rows anchor in the graph at {args.verify} ...")
+        fraud = take(fraud, args.fraud, "fraud")
+        clean = take(clean, args.clean, "clean")
     else:
         fraud, clean = fraud[: args.fraud], clean[: args.clean]
 
