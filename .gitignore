@@ -58,3 +58,9 @@ wandb/
 # and are prep notes rather than project documentation.
 docs/research_study_guide.*
 docs/presentation_script.*
+
+# Agent tooling, not project code: installed by `npx skills add` and by the
+# editor, and specific to one machine rather than to the research.
+.agents/
+.claude/
+skills-lock.json
