@@ -396,6 +396,91 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
                 "model": {"stage": p.stage, "version": MODEL_VERSION},
                 "bands": {k: round(float(v), 4) for k, v in p.risk_bands.items()}}
 
+    @app.get("/api/graph/performance")
+    def performance() -> dict:
+        """How the served model scores on the held-out window.
+
+        Computed here rather than read from a report, because the reports in
+        reports/ cover stages 1 through 3a and the model being served is 3b —
+        quoting one for the other is exactly the mislabelling this project has
+        already had to correct once.
+
+        Everything below comes from the bundle already in memory: the labels
+        from `edge_isFraud`, the window from `edge_step`, the scores from the
+        same calibrated vector the API answers with. Evaluated only on accounts
+        that received money inside the test window, which is the population the
+        model is asked about in production.
+
+        Cached after the first call — it is a handful of vectorised passes over
+        3.3M nodes, but there is no reason to repeat them.
+        """
+        import numpy as np
+        import torch
+
+        p: GraphPredictor = app.state.predictor
+        cached = getattr(app.state, "_performance", None)
+        if cached is not None:
+            return cached
+
+        lo, hi = 701, 743                       # the test label window
+        d = p.data
+        dst = d.edge_index[1]
+        step = d.edge_step.to(torch.int32)
+        fraud = d.edge_isFraud.to(torch.bool)
+
+        in_window = (step >= lo) & (step <= hi)
+
+        # A node is a mule if it received fraud; it is evaluated if it received
+        # anything at all. Both restricted to the window.
+        y = torch.zeros(int(d.num_nodes), dtype=torch.bool)
+        y[dst[in_window & fraud]] = True
+        evaluated = torch.zeros(int(d.num_nodes), dtype=torch.bool)
+        evaluated[dst[in_window]] = True
+
+        idx = evaluated.nonzero(as_tuple=True)[0]
+        scores = p.probs[idx].float().numpy()
+        labels = y[idx].numpy()
+
+        thr = float(p.threshold)
+        pred = scores >= thr
+        tp = int((pred & labels).sum())
+        fp = int((pred & ~labels).sum())
+        fn = int((~pred & labels).sum())
+        tn = int((~pred & ~labels).sum())
+
+        precision = tp / (tp + fp) if tp + fp else 0.0
+        recall = tp / (tp + fn) if tp + fn else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        accuracy = (tp + tn) / max(1, len(labels))
+
+        # AUC by rank, which needs no sklearn and no sorting of pairs.
+        order = np.argsort(scores)
+        ranks = np.empty_like(order, dtype=np.float64)
+        ranks[order] = np.arange(1, len(scores) + 1)
+        n_pos = int(labels.sum())
+        n_neg = len(labels) - n_pos
+        auc = ((ranks[labels].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+               if n_pos and n_neg else None)
+
+        out = {
+            "window": {"from_step": lo, "to_step": hi, "name": "held-out test"},
+            "threshold": round(thr, 4),
+            "evaluated_accounts": int(len(labels)),
+            "actual_mules": n_pos,
+            "metrics": {
+                "precision": round(precision, 4),
+                "recall": round(recall, 4),
+                "f1": round(f1, 4),
+                "accuracy": round(accuracy, 4),
+                "auroc": round(float(auc), 4) if auc is not None else None,
+            },
+            "confusion": {"tp": tp, "fp": fp, "fn": fn, "tn": tn},
+            "note": ("Computed from the serving bundle on the held-out window, "
+                     "for the model actually being served."),
+        }
+        app.state._performance = out
+        return out
+
     @app.get("/api/graph/sample-transactions")
     def sample_transactions(n: int = 20, fraud_ratio: float = 0.08) -> dict:
         """Real transactions for a live monitor to replay.
