@@ -39,6 +39,128 @@ REPO_ROOT = Path(os.getenv("GRAPHSAGE_DATA_ROOT")
 START_TS = time.time()
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
+# ── Demo CSV validation ──────────────────────────────────────────────────────
+# The demo panel takes a file from whoever is standing in front of it, so the
+# answer to a file that is not transactions has to be "this is not a
+# transactions file", not a table of blank rows. Without these checks an
+# unrelated CSV parsed fine, every lookup missed, and every row came back
+# unscored — which reads as the model failing rather than the input being wrong.
+#
+# The column names mirror backend/batch.py so the two uploads accept and reject
+# the same files. Balances are not required: the feature builder defaults them
+# to zero, and a file that lacks them still scores.
+DEMO_REQUIRED = ("nameorig", "namedest", "amount", "type", "step")
+DEMO_VALID_TYPES = {"TRANSFER", "CASH_OUT", "CASH_IN", "PAYMENT", "DEBIT"}
+DEMO_MAX_BYTES = 2 * 1024 * 1024
+DEMO_MAX_ROWS = 500
+_DEMO_CANONICAL = {
+    "nameorig": "nameOrig", "namedest": "nameDest", "amount": "amount",
+    "type": "type", "step": "step", "oldbalanceorg": "oldbalanceOrg",
+    "newbalanceorig": "newbalanceOrig", "oldbalancedest": "oldbalanceDest",
+    "newbalancedest": "newbalanceDest", "isfraud": "isFraud",
+}
+
+
+class DemoCsvError(Exception):
+    """A file the user needs to fix, with a message that says how."""
+
+    def __init__(self, message: str, **detail):
+        super().__init__(message)
+        self.message = message
+        self.detail = detail
+
+
+def read_demo_csv(filename: str, data: bytes) -> tuple[list[dict], list[str]]:
+    """Parse and check an uploaded demo file.
+
+    Returns the rows, keyed by canonical column name, and any advisory notes.
+    Raises DemoCsvError for anything the caller has to fix.
+    """
+    import csv as _csv
+    import io
+
+    name = (filename or "").lower()
+    if name.endswith((".xlsx", ".xlsm", ".xls")):
+        raise DemoCsvError(
+            "This panel reads .csv only. Save the sheet as CSV and upload that "
+            "— or use Batch upload on the Fusion page, which reads .xlsx.")
+    if name and not name.endswith((".csv", ".txt", ".tsv")):
+        raise DemoCsvError("Upload a .csv file. Other formats cannot be read.")
+
+    if len(data) > DEMO_MAX_BYTES:
+        raise DemoCsvError(
+            f"The file is {len(data) / 1024 / 1024:.1f} MB. The limit is "
+            f"{DEMO_MAX_BYTES // 1024 // 1024} MB.")
+
+    try:
+        text = data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise DemoCsvError(
+            "That file is not text. It looks like a spreadsheet or another "
+            "binary format saved with a .csv name.") from None
+
+    reader = _csv.DictReader(io.StringIO(text))
+    header = [h for h in (reader.fieldnames or []) if str(h).strip()]
+    if not header:
+        raise DemoCsvError("That file has no header row.")
+
+    index = {str(h).strip().lower(): str(h) for h in header}
+    missing = [c for c in DEMO_REQUIRED if c not in index]
+    if missing:
+        raise DemoCsvError(
+            "The file is missing required column(s): "
+            + ", ".join(_DEMO_CANONICAL[m] for m in missing)
+            + ". A transactions file needs step, type, amount, nameOrig and "
+              "nameDest.",
+            missing=[_DEMO_CANONICAL[m] for m in missing],
+            found=header)
+
+    rows, notes = [], []
+    for offset, raw_row in enumerate(reader, start=2):   # row 1 is the header
+        if not any(str(v).strip() for v in raw_row.values() if v is not None):
+            continue                                     # blank line
+        if len(rows) >= DEMO_MAX_ROWS:
+            notes.append(f"Only the first {DEMO_MAX_ROWS} rows were scored.")
+            break
+
+        row = {}
+        for lower, original in index.items():
+            row[_DEMO_CANONICAL.get(lower, original)] = raw_row.get(original)
+
+        tx_type = str(row.get("type") or "").strip().upper()
+        if tx_type not in DEMO_VALID_TYPES:
+            raise DemoCsvError(
+                f"Row {offset}: '{tx_type or '(blank)'}' is not a transaction "
+                f"type. Expected one of {', '.join(sorted(DEMO_VALID_TYPES))}.",
+                row=offset)
+        row["type"] = tx_type
+
+        for field in ("amount", "step"):
+            value = str(row.get(field) or "").strip()
+            try:
+                float(value)
+            except ValueError:
+                raise DemoCsvError(
+                    f"Row {offset}: {field} is '{value or '(blank)'}', which is "
+                    f"not a number.", row=offset) from None
+
+        if not str(row.get("nameOrig") or "").strip() or \
+                not str(row.get("nameDest") or "").strip():
+            raise DemoCsvError(
+                f"Row {offset}: a transaction with no sender or no recipient "
+                f"cannot be scored.", row=offset)
+
+        rows.append(row)
+
+    if not rows:
+        raise DemoCsvError("No rows in that file.")
+
+    if "isFraud" not in index and "isfraud" not in index:
+        notes.append("No isFraud column, so accuracy cannot be measured — "
+                     "only what the model flags.")
+    return rows, notes
+
+
 def score_to_risk_level(score: float, bands: dict[str, float]) -> RiskLevel:
     """Map a calibrated score to a contract §5 risk level.
 
@@ -334,21 +456,16 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
         detectors, no alerting. One model, one column of answers, so what is
         on screen is attributable to this component alone.
         """
-        import csv as _csv
-        import io
-
         from graphsage.inference.inductive import derive_node_features, edge_features
 
         p: GraphPredictor = app.state.predictor
         live = getattr(p, "live", None)
         horizon = int(p.meta["step_range"][1])
-        raw = (await file.read()).decode("utf-8-sig", errors="replace")
-        rows = list(_csv.DictReader(io.StringIO(raw)))
-        if not rows:
+        try:
+            rows, notes = read_demo_csv(file.filename or "", await file.read())
+        except DemoCsvError as exc:
             return JSONResponse(status_code=422, content={
-                "error": "Invalid", "message": "No rows in that file."})
-        if len(rows) > 500:
-            rows = rows[:500]
+                "error": "Invalid", "message": exc.message, **exc.detail})
 
         name_to_id = p.extractor.name_to_id
         out, counts = [], {"precomputed": 0, "inductive": 0, "unscored": 0}
@@ -392,7 +509,8 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
                 rec["isFraud"] = r.get("isFraud")
             out.append(rec)
 
-        return {"rows": out, "counts": counts, "scored_by": "graph_only",
+        return {"rows": out, "counts": counts, "notes": notes,
+                "scored_by": "graph_only",
                 "model": {"stage": p.stage, "version": MODEL_VERSION},
                 "bands": {k: round(float(v), 4) for k, v in p.risk_bands.items()}}
 
