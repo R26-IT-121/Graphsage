@@ -52,13 +52,107 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 DEMO_REQUIRED = ("nameorig", "namedest", "amount", "type", "step")
 DEMO_VALID_TYPES = {"TRANSFER", "CASH_OUT", "CASH_IN", "PAYMENT", "DEBIT"}
 DEMO_MAX_BYTES = 2 * 1024 * 1024
-DEMO_MAX_ROWS = 500
+# 1000 so a thousand-row validation file scores whole rather than half.
+# Every row is a graph lookup or one k-hop aggregation, so this stays fast.
+DEMO_MAX_ROWS = 1000
 _DEMO_CANONICAL = {
     "nameorig": "nameOrig", "namedest": "nameDest", "amount": "amount",
     "type": "type", "step": "step", "oldbalanceorg": "oldbalanceOrg",
     "newbalanceorig": "newbalanceOrig", "oldbalancedest": "oldbalanceDest",
     "newbalancedest": "newbalanceDest", "isfraud": "isFraud",
 }
+
+
+def check_demo_transactions(account: str, txns: list[dict],
+                            horizon: int) -> list[str]:
+    """Reasons these transactions do not describe a coherent account.
+
+    The demo lets someone type a transaction by hand, so the values can be
+    edited into a state that no real ledger would produce — an amount changed
+    without changing the balances it moved between, a payment larger than the
+    balance it came from, an account paying itself. Aggregating those would
+    hand the network a neighbourhood that cannot exist, and the score that
+    came back would be meaningless rather than wrong in an interesting way.
+
+    Returns every problem found, so the caller can fix them in one pass rather
+    than one refusal at a time. An empty list means the set is coherent.
+    """
+    problems: list[str] = []
+    tol = 0.02                      # currency rounding, not a real discrepancy
+
+    for i, t in enumerate(txns, start=1):
+        where = f"Transaction {i}"
+        orig = str(t.get("nameOrig") or "").strip()
+        dest = str(t.get("nameDest") or "").strip()
+
+        if not orig or not dest:
+            problems.append(f"{where}: needs both a sender and a recipient.")
+            continue
+        if orig == dest:
+            problems.append(f"{where}: {orig} cannot pay itself.")
+
+        try:
+            amount = float(t.get("amount"))
+        except (TypeError, ValueError):
+            problems.append(f"{where}: amount is not a number.")
+            continue
+        if amount <= 0:
+            problems.append(f"{where}: amount must be greater than zero.")
+
+        tx_type = str(t.get("type") or "").strip().upper()
+        if tx_type and tx_type not in DEMO_VALID_TYPES:
+            problems.append(
+                f"{where}: '{tx_type}' is not a transaction type "
+                f"({', '.join(sorted(DEMO_VALID_TYPES))}).")
+
+        if t.get("step") is not None:
+            try:
+                step = int(float(t.get("step")))
+            except (TypeError, ValueError):
+                problems.append(f"{where}: step is not a number.")
+            else:
+                if not 1 <= step <= horizon:
+                    problems.append(
+                        f"{where}: step {step} is outside the served graph, "
+                        f"which covers steps 1 to {horizon}.")
+
+        # The edit that makes a hand-typed transaction incoherent: changing the
+        # amount and leaving the balances describing the old one.
+        old_org, new_org = t.get("oldbalanceOrg"), t.get("newbalanceOrig")
+        if old_org is not None and new_org is not None:
+            try:
+                old_org, new_org = float(old_org), float(new_org)
+            except (TypeError, ValueError):
+                problems.append(f"{where}: sender balances are not numbers.")
+            else:
+                if old_org < 0 or new_org < 0:
+                    problems.append(f"{where}: a balance cannot be negative.")
+                elif amount > old_org + tol:
+                    problems.append(
+                        f"{where}: {orig} sends {amount:,.2f} but holds only "
+                        f"{old_org:,.2f}.")
+                elif abs((old_org - amount) - new_org) > max(tol, old_org * 1e-6):
+                    problems.append(
+                        f"{where}: the sender's balance does not match the "
+                        f"amount — {old_org:,.2f} minus {amount:,.2f} is "
+                        f"{old_org - amount:,.2f}, not {new_org:,.2f}.")
+
+        old_dst, new_dst = t.get("oldbalanceDest"), t.get("newbalanceDest")
+        if old_dst is not None and new_dst is not None:
+            try:
+                old_dst, new_dst = float(old_dst), float(new_dst)
+            except (TypeError, ValueError):
+                problems.append(f"{where}: recipient balances are not numbers.")
+            else:
+                if old_dst < 0 or new_dst < 0:
+                    problems.append(f"{where}: a balance cannot be negative.")
+                elif abs((old_dst + amount) - new_dst) > max(tol, old_dst * 1e-6):
+                    problems.append(
+                        f"{where}: the recipient's balance does not match the "
+                        f"amount — {old_dst:,.2f} plus {amount:,.2f} is "
+                        f"{old_dst + amount:,.2f}, not {new_dst:,.2f}.")
+
+    return problems
 
 
 class DemoCsvError(Exception):
@@ -389,6 +483,22 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
             })
 
         horizon = int(p.meta["step_range"][1])
+
+        # Refuse a set that cannot describe a real ledger before it reaches the
+        # network. Scoring an impossible neighbourhood produces a number, and a
+        # number that means nothing is worse on a demo than a refusal that says
+        # exactly which value is wrong.
+        problems = check_demo_transactions(account, txns, horizon)
+        if problems:
+            return JSONResponse(status_code=422, content={
+                "error": "Incoherent",
+                # The console reaches this through a proxy that forwards only
+                # the message, so the first problem has to travel inside it.
+                "message": problems[0] + (
+                    f" (and {len(problems) - 1} more)" if len(problems) > 1 else ""),
+                "problems": problems,
+            })
+
         feats = derive_node_features(out_txns, in_txns, horizon)
 
         # Resolve the counterparties. An account the graph has never heard of
