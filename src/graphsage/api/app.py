@@ -177,6 +177,32 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
             },
         }
 
+    @app.get("/api/graph/neighbourhood")
+    def neighbourhood(account: str, hops: int = 1, max_edges: int = 150):
+        """The graph immediately around one account.
+
+        For exploring rather than deciding: /analyze answers a question about a
+        transaction, this answers "show me this account". Bounded on purpose —
+        the served graph is 3.27M accounts, and no request here may try to hand
+        a browser more than a screenful of it. The caller walks outward a node
+        at a time instead, and the response reports whether it was truncated so
+        the UI can say so rather than implying it drew everything.
+        """
+        from graphsage.extraction.subgraph import neighbourhood as build
+
+        p: GraphPredictor = app.state.predictor
+        out = build(
+            p.extractor, account, p.probs, p.edge_attention,
+            hops=hops, max_edges=max(10, min(int(max_edges), 400)),
+        )
+        if out is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "NotFound",
+                         "message": f"No account {account!r} in the graph."},
+            )
+        return out
+
     @app.get("/api/graph/sample-transactions")
     def sample_transactions(n: int = 20, fraud_ratio: float = 0.08) -> dict:
         """Real transactions for a live monitor to replay.

@@ -362,3 +362,114 @@ class SuspiciousSubgraphExtractor:
             },
         }
 
+
+
+# --------------------------------------------------------------------------- #
+# Node-centred neighbourhood, for interactive exploration
+# --------------------------------------------------------------------------- #
+
+
+def neighbourhood(
+    extractor: "SuspiciousSubgraphExtractor",
+    account: str,
+    node_probs: Tensor,
+    edge_attention: Tensor,
+    hops: int = 1,
+    max_edges: int = 150,
+) -> dict | None:
+    """The graph immediately around one account, small enough to draw.
+
+    `extract` is anchored on a transaction, because that is what the detector
+    is asked about. Exploring is a different question — "show me this account"
+    — and there is no edge to anchor on, so this walks out from the node
+    instead.
+
+    Deliberately bounded. The served graph is 3.27M accounts and 2.77M
+    transfers; nothing here may attempt to hand all of that to a browser. One
+    hop is returned by default, edges are capped, and when the cap bites the
+    highest-attention edges are kept — those are the ones the model itself
+    thought mattered. The response says it was truncated rather than quietly
+    returning a partial picture.
+    """
+    node_id = extractor.name_to_id.get(account)
+    if node_id is None:
+        return None
+
+    data = extractor.data
+    hops = max(1, min(int(hops), 2))
+
+    subset, _, _, _ = k_hop_subgraph(
+        node_idx=node_id,
+        num_hops=hops,
+        edge_index=extractor._undirected_edge_index,
+        num_nodes=data.num_nodes,
+        relabel_nodes=False,
+    )
+    # Directed edges with both ends inside the ball.
+    #
+    # Done as tensor indexing rather than a Python comprehension over the edge
+    # list. The comprehension was correct but walked all 2.77M edges per
+    # request — about 400ms to answer a question about seven nodes. This is a
+    # membership lookup on both endpoint arrays at once.
+    src_all, dst_all = data.edge_index[0], data.edge_index[1]
+    in_ball = torch.zeros(data.num_nodes, dtype=torch.bool)
+    in_ball[subset] = True
+    edge_ids = (in_ball[src_all] & in_ball[dst_all]).nonzero(as_tuple=True)[0]
+
+    total_edges = int(edge_ids.numel())
+    truncated = total_edges > max_edges
+    if truncated:
+        # Keep what the model weighted most heavily, not an arbitrary slice.
+        att = edge_attention[edge_ids]
+        order = torch.argsort(att, descending=True)[:max_edges]
+        edge_ids = edge_ids[order]
+
+    shown = set()
+    edges = []
+    for eid in edge_ids.tolist():
+        s, d = int(src_all[eid]), int(dst_all[eid])
+        shown.add(s)
+        shown.add(d)
+        attrs = data.edge_attr[eid]
+        edges.append({
+            "source": extractor.node_names[s],
+            "target": extractor.node_names[d],
+            "amount": round(float(torch.expm1(attrs[0])), 2),
+            "attention": round(float(edge_attention[eid]), 4),
+            "step": int(data.edge_step[eid]) if hasattr(data, "edge_step") else None,
+        })
+
+    # Degrees for the whole graph in two passes, then read off.
+    #
+    # These were `(dst_all == n).sum()` per node, which scans all 2.77M edges
+    # once for every node returned — a 28-node answer did 78M comparisons to
+    # produce 56 integers, and it got worse the more useful the result was.
+    # bincount does both directions in one pass each, and the result is cached
+    # on the extractor because the graph does not change between requests.
+    if getattr(extractor, "_degrees", None) is None:
+        extractor._degrees = (
+            torch.bincount(dst_all, minlength=data.num_nodes),
+            torch.bincount(src_all, minlength=data.num_nodes),
+        )
+    in_deg_all, out_deg_all = extractor._degrees
+
+    nodes = [{
+        "id": extractor.node_names[n],
+        "score": round(float(node_probs[n]), 4),
+        "is_centre": n == node_id,
+        "in_degree": int(in_deg_all[n]),
+        "out_degree": int(out_deg_all[n]),
+    } for n in sorted(shown)]
+
+    return {
+        "centre": account,
+        "hops": hops,
+        "nodes": nodes,
+        "edges": edges,
+        "counts": {
+            "nodes_returned": len(nodes),
+            "edges_returned": len(edges),
+            "edges_in_ball": total_edges,
+            "truncated": truncated,
+        },
+    }
