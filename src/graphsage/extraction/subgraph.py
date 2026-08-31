@@ -376,6 +376,7 @@ def neighbourhood(
     edge_attention: Tensor,
     hops: int = 1,
     max_edges: int = 150,
+    scope: str = "hops",
 ) -> dict | None:
     """The graph immediately around one account, small enough to draw.
 
@@ -398,13 +399,27 @@ def neighbourhood(
     data = extractor.data
     hops = max(1, min(int(hops), 2))
 
-    subset, _, _, _ = k_hop_subgraph(
-        node_idx=node_id,
-        num_hops=hops,
-        edge_index=extractor._undirected_edge_index,
-        num_nodes=data.num_nodes,
-        relabel_nodes=False,
-    )
+    if scope == "component":
+        # Everything this account is connected to, however far, rather than a
+        # fixed number of hops.
+        #
+        # This is what "show me the network" means on this graph. Hops are the
+        # wrong control here: senders have an out-degree of one, so a second
+        # hop returns the same picture as the first. Components are not — the
+        # graph is 507,100 separate islands and the largest is 90 accounts, so
+        # a whole component is both the complete truth about how this account
+        # connects and small enough to draw.
+        labels = _component_labels(extractor)
+        subset = torch.from_numpy(
+            (labels == labels[node_id]).nonzero()[0].astype("int64"))
+    else:
+        subset, _, _, _ = k_hop_subgraph(
+            node_idx=node_id,
+            num_hops=hops,
+            edge_index=extractor._undirected_edge_index,
+            num_nodes=data.num_nodes,
+            relabel_nodes=False,
+        )
     # Directed edges with both ends inside the ball.
     #
     # Done as tensor indexing rather than a Python comprehension over the edge
@@ -463,6 +478,7 @@ def neighbourhood(
 
     return {
         "centre": account,
+        "scope": scope,
         "hops": hops,
         "nodes": nodes,
         "edges": edges,
@@ -473,3 +489,28 @@ def neighbourhood(
             "truncated": truncated,
         },
     }
+
+
+def _component_labels(extractor: "SuspiciousSubgraphExtractor"):
+    """Connected-component id per account, computed once and kept.
+
+    scipy does this in C over the sparse adjacency; the same thing as a Python
+    union-find over 2.77M edges takes the better part of a minute, which is
+    fine once and unacceptable per request. The graph does not change while the
+    service is up, so it is cached on the extractor.
+    """
+    cached = getattr(extractor, "_components", None)
+    if cached is not None:
+        return cached
+
+    import numpy as np
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    ei = extractor.data.edge_index.numpy()
+    n = extractor.data.num_nodes
+    adj = coo_matrix(
+        (np.ones(ei.shape[1], dtype=np.int8), (ei[0], ei[1])), shape=(n, n))
+    _, labels = connected_components(adj, directed=False)
+    extractor._components = labels
+    return labels

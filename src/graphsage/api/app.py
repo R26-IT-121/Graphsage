@@ -178,7 +178,8 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
         }
 
     @app.get("/api/graph/neighbourhood")
-    def neighbourhood(account: str, hops: int = 1, max_edges: int = 150):
+    def neighbourhood(account: str, hops: int = 1, max_edges: int = 150,
+                      scope: str = "component"):
         """The graph immediately around one account.
 
         For exploring rather than deciding: /analyze answers a question about a
@@ -194,6 +195,7 @@ def create_app(predictor: GraphPredictor | None = None) -> FastAPI:
         out = build(
             p.extractor, account, p.probs, p.edge_attention,
             hops=hops, max_edges=max(10, min(int(max_edges), 400)),
+            scope="component" if scope == "component" else "hops",
         )
         if out is None:
             return JSONResponse(
