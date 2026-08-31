@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +29,13 @@ from graphsage.api.schemas import (
 )
 from graphsage.inference.predictor import MODEL_VERSION, GraphPredictor
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# Where data/ lives. Defaults to the checkout this file sits in, which is
+# right for a single working copy. It is overridable because the serving
+# bundle is 162 MB and gitignored: a second checkout of this code has the
+# source but no model, and pointing it at the one copy on disk beats
+# either duplicating the file or committing a machine-specific symlink.
+REPO_ROOT = Path(os.getenv("GRAPHSAGE_DATA_ROOT")
+                 or Path(__file__).resolve().parents[3])
 START_TS = time.time()
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
