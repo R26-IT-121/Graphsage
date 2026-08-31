@@ -94,6 +94,97 @@ class LiveModel:
             **self.meta,
         }
 
+    def score_new_node(
+        self,
+        node_features,
+        out_edges: list[tuple[int, "np.ndarray"]],
+        in_edges: list[tuple[int, "np.ndarray"]],
+    ) -> tuple[float, float, dict]:
+        """Score an account that is not in the graph at all.
+
+        This is the inductive claim made concrete. `score_node` above still
+        needs its target to exist in `data.edge_index`; here the node is
+        appended to the neighbourhood at request time, scored, and discarded.
+        The served graph is never mutated — the tensors below are slices, and
+        the concatenations build new ones.
+
+        The embedding the network computes for it therefore depends on exactly
+        one thing: who it is attached to. Attach the same account to different
+        neighbours and the score moves. A transductive model cannot answer this
+        question at all.
+
+        Returns (probability, latency_ms, provenance) where provenance reports
+        how much graph the answer actually depended on.
+        """
+        t0 = time.time()
+        neighbours = sorted({n for n, _ in out_edges} | {n for n, _ in in_edges})
+        if not neighbours:
+            raise ValueError("A new node needs at least one edge to score.")
+
+        subset, edge_index, _, edge_mask = k_hop_subgraph(
+            torch.tensor(neighbours, dtype=torch.long),
+            self.k,
+            self.data.edge_index,
+            relabel_nodes=True,
+            num_nodes=int(self.data.num_nodes),
+        )
+        if subset.numel() > self.max_nodes:
+            # A hub neighbour can pull in an enormous k-hop set. Fall back to
+            # one hop rather than refusing: a smaller true neighbourhood is a
+            # better answer than none, and the provenance says which was used.
+            subset, edge_index, _, edge_mask = k_hop_subgraph(
+                torch.tensor(neighbours, dtype=torch.long), 1,
+                self.data.edge_index, relabel_nodes=True,
+                num_nodes=int(self.data.num_nodes),
+            )
+            hops_used = 1
+        else:
+            hops_used = self.k
+
+        # Where each neighbour landed after relabelling.
+        local = {int(g): i for i, g in enumerate(subset.tolist())}
+        new_idx = subset.numel()
+
+        extra_src, extra_dst, extra_attr = [], [], []
+        for other, attr in out_edges:                   # new node -> neighbour
+            if int(other) in local:
+                extra_src.append(new_idx); extra_dst.append(local[int(other)])
+                extra_attr.append(torch.as_tensor(attr, dtype=torch.float32))
+        for other, attr in in_edges:                    # neighbour -> new node
+            if int(other) in local:
+                extra_src.append(local[int(other)]); extra_dst.append(new_idx)
+                extra_attr.append(torch.as_tensor(attr, dtype=torch.float32))
+        if not extra_attr:
+            raise ValueError("None of the named neighbours are in the graph.")
+
+        x = torch.cat([
+            self.x[subset],
+            torch.as_tensor(node_features, dtype=torch.float32).view(1, -1),
+        ], dim=0)
+        ei = torch.cat([
+            edge_index,
+            torch.tensor([extra_src, extra_dst], dtype=torch.long),
+        ], dim=1)
+        ea = torch.cat([
+            self.data.edge_attr[edge_mask],
+            torch.stack(extra_attr),
+        ], dim=0)
+
+        with self._lock, torch.no_grad():
+            logits = self.model(x.to(self.device), ei.to(self.device),
+                                ea.to(self.device))
+            raw = float(torch.sigmoid(logits[new_idx]).item())
+
+        ms = (time.time() - t0) * 1000
+        self.inferences += 1
+        self.total_ms += ms
+        return raw, ms, {
+            "neighbourhood_accounts": int(subset.numel()),
+            "neighbourhood_transactions": int(edge_index.shape[1]),
+            "attached_edges": len(extra_attr),
+            "hops_used": hops_used,
+        }
+
     def score_node(self, node_id: int) -> tuple[float, float]:
         """Return (raw_probability, latency_ms) for one account.
 
