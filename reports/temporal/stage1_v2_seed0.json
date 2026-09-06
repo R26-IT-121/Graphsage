@@ -1,0 +1,82 @@
+{
+  "protocol": "temporal_snapshots_leakage_free",
+  "stage": "1",
+  "seed": 0,
+  "features": "v2",
+  "prior_init": false,
+  "best_epoch": 2,
+  "tuned_threshold": 0.8439114689826965,
+  "val": {
+    "threshold": 0.8439114689826965,
+    "precision": 0.4398216939078752,
+    "recall": 0.26811594202898553,
+    "f1": 0.33314575126617896,
+    "auroc": 0.8429439317772098,
+    "pr_auc": 0.24747857412790833
+  },
+  "test": {
+    "threshold": 0.8439114689826965,
+    "precision": 0.7218934911242604,
+    "recall": 0.25102880658436216,
+    "f1": 0.37251908396946565,
+    "auroc": 0.852165428600698,
+    "pr_auc": 0.41618461130755396
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.3461359739303589,
+      "val_f1_tuned": 0.3290858725286697,
+      "val_pr_auc": 0.24544007382286626,
+      "elapsed_s": 1.7
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.2539697885513306,
+      "val_f1_tuned": 0.3331457512191203,
+      "val_pr_auc": 0.24747857412790833,
+      "elapsed_s": 0.7
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.172701120376587,
+      "val_f1_tuned": 0.33147321423840875,
+      "val_pr_auc": 0.24641804812024046,
+      "elapsed_s": 0.7
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.1020647287368774,
+      "val_f1_tuned": 0.3312745648040813,
+      "val_pr_auc": 0.24771632804900146,
+      "elapsed_s": 0.7
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.0329928398132324,
+      "val_f1_tuned": 0.33146067411019414,
+      "val_pr_auc": 0.2481519950773702,
+      "elapsed_s": 0.7
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.9767575263977051,
+      "val_f1_tuned": 0.3312745648040813,
+      "val_pr_auc": 0.24802328394880907,
+      "elapsed_s": 0.7
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.92228102684021,
+      "val_f1_tuned": 0.3301622831089027,
+      "val_pr_auc": 0.24724550095966397,
+      "elapsed_s": 0.7
+    }
+  ],
+  "hyperparameters": {
+    "hidden_dim": 64,
+    "lr": 0.001,
+    "loss": "BCEWithLogitsLoss",
+    "sampler": false
+  }
+}

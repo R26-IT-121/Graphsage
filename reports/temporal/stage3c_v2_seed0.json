@@ -1,0 +1,89 @@
+{
+  "protocol": "temporal_snapshots_leakage_free",
+  "stage": "3c",
+  "seed": 0,
+  "features": "v2",
+  "prior_init": true,
+  "best_epoch": 3,
+  "tuned_threshold": 0.9964843988418579,
+  "val": {
+    "threshold": 0.9964843988418579,
+    "precision": 0.4493333333333333,
+    "recall": 0.3052536231884058,
+    "f1": 0.3635382955771305,
+    "auroc": 0.8921580924836786,
+    "pr_auc": 0.2798761429246988
+  },
+  "test": {
+    "threshold": 0.9964843988418579,
+    "precision": 0.6486486486486487,
+    "recall": 0.2962962962962963,
+    "f1": 0.4067796610169492,
+    "auroc": 0.8804439713724834,
+    "pr_auc": 0.4482507192698523
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.42630812160524667,
+      "val_f1_tuned": 0.33931673417507147,
+      "val_pr_auc": 0.2576210239829602,
+      "elapsed_s": 4.5
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.07303785949068911,
+      "val_f1_tuned": 0.36242299789750265,
+      "val_pr_auc": 0.278832310282943,
+      "elapsed_s": 5.4
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.049781147682783654,
+      "val_f1_tuned": 0.3635382955289534,
+      "val_pr_auc": 0.2798761429246988,
+      "elapsed_s": 4.0
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.028868586409325693,
+      "val_f1_tuned": 0.35851183760800953,
+      "val_pr_auc": 0.27590560148591703,
+      "elapsed_s": 4.0
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.01991152273965817,
+      "val_f1_tuned": 0.3559037492532788,
+      "val_pr_auc": 0.2713183913771377,
+      "elapsed_s": 5.4
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.01669267577794837,
+      "val_f1_tuned": 0.3508391986525057,
+      "val_pr_auc": 0.2653608389174532,
+      "elapsed_s": 4.0
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.013379915297834897,
+      "val_f1_tuned": 0.3456521738650435,
+      "val_pr_auc": 0.26043333345059716,
+      "elapsed_s": 4.0
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.013180300009016897,
+      "val_f1_tuned": 0.33859095683878104,
+      "val_pr_auc": 0.24770164220450122,
+      "elapsed_s": 5.3
+    }
+  ],
+  "hyperparameters": {
+    "hidden_dim": 64,
+    "lr": 0.001,
+    "loss": "FocalLoss",
+    "sampler": true
+  }
+}
