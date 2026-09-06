@@ -53,10 +53,22 @@ class EdgeEnhancedSAGEConv(MessagePassing):
         edge_dim: int,
         edge_mlp_hidden: int = 32,
         bias: bool = True,
+        attn_norm: bool = False,
+        attn_init_bias: float = 0.0,
     ):
-        # aggr='add' because we'll be doing a WEIGHTED SUM, not a mean.
-        # Mean would normalise away the attention; sum lets attention amplify.
+        # aggr='add' gives a WEIGHTED SUM. That was chosen so attention could
+        # amplify rather than be normalised away — but it also means this layer
+        # differs from the baseline in TWO ways, not one: the baseline's
+        # SAGEConv uses aggr='mean'. With in-degree up to 75, an unnormalised
+        # sum hands layer 2 activations that scale with degree, and stage 2
+        # never escaped a degenerate solution as a result.
+        #
+        # attn_norm divides by the summed attention, giving an attention-
+        # weighted MEAN: relative edge importance is preserved, scale is not.
+        # Left off by default so the served checkpoint keeps its behaviour.
         super().__init__(aggr="add")
+        self.attn_norm = attn_norm
+        self.attn_init_bias = attn_init_bias
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -82,6 +94,14 @@ class EdgeEnhancedSAGEConv(MessagePassing):
         for layer in self.edge_mlp:
             if isinstance(layer, nn.Linear):
                 layer.reset_parameters()
+        # At default init the MLP outputs ~0, so sigmoid gives ~0.5 and every
+        # message is halved before training starts — the layer begins by
+        # attenuating the graph it is meant to read. A positive bias starts
+        # attention near 1.0 (pass-through), so training begins from the
+        # baseline's behaviour and learns to attenuate what deserves it.
+        if self.attn_init_bias:
+            final = [m for m in self.edge_mlp if isinstance(m, nn.Linear)][-1]
+            nn.init.constant_(final.bias, float(self.attn_init_bias))
 
     def forward(
         self,
@@ -115,6 +135,14 @@ class EdgeEnhancedSAGEConv(MessagePassing):
         # Aggregate neighbors with attention weights, then transform.
         # propagate dispatches to message() then aggregates with self.aggr ('add').
         agg = self.propagate(edge_index, x=x, edge_weight=edge_weight)
+
+        if self.attn_norm:
+            # Sum of attention arriving at each destination node. Clamped so an
+            # isolated node divides by 1 rather than 0.
+            denom = torch.zeros(x.size(0), 1, device=x.device, dtype=agg.dtype)
+            denom.index_add_(0, edge_index[1], edge_weight)
+            agg = agg / denom.clamp(min=1e-6)
+
         out_neigh = self.lin_neighbor(agg)
 
         out = out_self + out_neigh

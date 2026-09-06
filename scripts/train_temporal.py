@@ -110,6 +110,29 @@ def main() -> None:
         default="v1",
         help="v1 = 5 structural aggregates; v2 = 12-dim behavioural set",
     )
+    # ── Edge-attention diagnostics ──────────────────────────────────────────
+    # Stage 2 never escaped a degenerate solution and stage 3b peaked at epoch
+    # 1 then declined, while the two stages WITHOUT the Edge-MLP trained
+    # normally. The layer differs from the baseline in two ways, not one: it
+    # also swaps SAGEConv's aggr='mean' for an unnormalised 'add'. These flags
+    # separate "edge attention does not help" from "this implementation of it
+    # does not train".
+    parser.add_argument(
+        "--attn-norm", action="store_true",
+        help="divide the weighted sum by the summed attention, giving an "
+             "attention-weighted MEAN — removes the degree-scaling the "
+             "baseline never had")
+    parser.add_argument(
+        "--attn-init-bias", type=float, default=0.0,
+        help="bias on the attention MLP's last layer; 3.0 starts sigmoid at "
+             "0.95 (pass-through) instead of 0.5 (every message halved)")
+    parser.add_argument(
+        "--clip-grad", type=float, default=0.0,
+        help="max gradient norm, 0 to disable")
+    parser.add_argument(
+        "--tag", default="",
+        help="suffix for the output filenames, so variants of the same stage "
+             "do not overwrite each other (e.g. --tag attnnorm)")
     parser.add_argument(
         "--no-prior-init",
         action="store_true",
@@ -133,7 +156,8 @@ def main() -> None:
         model = BaselineGraphSAGE(in_dim=in_dim, hidden_dim=args.hidden_dim)
     else:
         model = EdgeEnhancedGraphSAGE(
-            in_dim=in_dim, edge_dim=edge_dim, hidden_dim=args.hidden_dim
+            in_dim=in_dim, edge_dim=edge_dim, hidden_dim=args.hidden_dim,
+            attn_norm=args.attn_norm, attn_init_bias=args.attn_init_bias,
         )
 
     # Focal Loss prior init (Lin et al. 2017), ported from the May-17 fix in
@@ -186,6 +210,8 @@ def main() -> None:
                 logits[train_mask], train_y[train_mask].to(device)
             )
             loss.backward()
+            if args.clip_grad:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad)
             optimizer.step()
             train_loss = float(loss.item())
         else:
@@ -208,6 +234,8 @@ def main() -> None:
                     batch.y.to(device),
                 )
                 loss.backward()
+                if args.clip_grad:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad)
                 optimizer.step()
                 losses.append(float(loss.item()))
             train_loss = float(np.mean(losses))
@@ -248,6 +276,9 @@ def main() -> None:
     results = {
         "protocol": "temporal_snapshots_leakage_free",
         "stage": args.stage,
+        "attn_norm": args.attn_norm,
+        "attn_init_bias": args.attn_init_bias,
+        "clip_grad": args.clip_grad,
         "seed": args.seed,
         "features": args.features,
         "prior_init": prior_init,
@@ -267,6 +298,8 @@ def main() -> None:
     out_dir = REPO_ROOT / "reports" / "temporal"
     out_dir.mkdir(parents=True, exist_ok=True)
     tag = f"stage{args.stage}{'_v2' if args.features == 'v2' else ''}_seed{args.seed}"
+    if args.tag:
+        tag += f"_{args.tag}"
     out_path = out_dir / f"{tag}.json"
     out_path.write_text(json.dumps(results, indent=2))
 

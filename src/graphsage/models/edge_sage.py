@@ -55,6 +55,8 @@ class EdgeEnhancedGraphSAGE(nn.Module):
         edge_mlp_hidden: int = 32,
         dropout: float = 0.3,
         prior_pi: float | None = None,
+        attn_norm: bool = False,
+        attn_init_bias: float = 0.0,
     ):
         super().__init__()
         self.conv1 = EdgeEnhancedSAGEConv(
@@ -62,12 +64,16 @@ class EdgeEnhancedGraphSAGE(nn.Module):
             out_channels=hidden_dim,
             edge_dim=edge_dim,
             edge_mlp_hidden=edge_mlp_hidden,
+            attn_norm=attn_norm,
+            attn_init_bias=attn_init_bias,
         )
         self.conv2 = EdgeEnhancedSAGEConv(
             in_channels=hidden_dim,
             out_channels=hidden_dim,
             edge_dim=edge_dim,
             edge_mlp_hidden=edge_mlp_hidden,
+            attn_norm=attn_norm,
+            attn_init_bias=attn_init_bias,
         )
         self.classifier = nn.Linear(hidden_dim, 1)
         self.dropout = dropout
