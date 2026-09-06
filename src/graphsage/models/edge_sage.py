@@ -55,7 +55,7 @@ class EdgeEnhancedGraphSAGE(nn.Module):
         edge_mlp_hidden: int = 32,
         dropout: float = 0.3,
         prior_pi: float | None = None,
-        attn_norm: bool = False,
+        attn_norm: bool = True,
         attn_init_bias: float = 0.0,
     ):
         super().__init__()

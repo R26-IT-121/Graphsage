@@ -82,10 +82,16 @@ def main() -> None:
         )
         has_attention = False
     else:
+        # Read the aggregation from the checkpoint, never from the class
+        # defaults: a model trained with the unnormalised sum scores
+        # differently under the normalised one, and the bundle would be wrong
+        # in a way nothing downstream could detect.
         model = EdgeEnhancedGraphSAGE(
             in_dim=graph.x.shape[1],
             edge_dim=graph.edge_attr.shape[1],
             hidden_dim=args.hidden_dim,
+            attn_norm=bool(ckpt.get("attn_norm", False)),
+            attn_init_bias=float(ckpt.get("attn_init_bias", 0.0)),
         )
         has_attention = True
     model.load_state_dict(ckpt["state_dict"])

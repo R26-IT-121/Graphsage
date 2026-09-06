@@ -62,10 +62,16 @@ class LiveModel:
         hp = ckpt.get("hyperparameters", {})
 
         self.x = torch.load(node_features, weights_only=True, map_location="cpu").float()
+        # How this checkpoint aggregated is part of the architecture, so it
+        # comes from the checkpoint rather than from the class defaults. A
+        # checkpoint saved before those flags existed predates the fix and gets
+        # the old behaviour, which is what it was trained with.
         self.model = EdgeEnhancedGraphSAGE(
             in_dim=self.x.shape[1],
             edge_dim=int(data.edge_attr.shape[1]),
             hidden_dim=int(hp.get("hidden_dim", 64)),
+            attn_norm=bool(ckpt.get("attn_norm", False)),
+            attn_init_bias=float(ckpt.get("attn_init_bias", 0.0)),
         )
         self.model.load_state_dict(ckpt["state_dict"])
         self.model.eval()

@@ -53,7 +53,7 @@ class EdgeEnhancedSAGEConv(MessagePassing):
         edge_dim: int,
         edge_mlp_hidden: int = 32,
         bias: bool = True,
-        attn_norm: bool = False,
+        attn_norm: bool = True,
         attn_init_bias: float = 0.0,
     ):
         # aggr='add' gives a WEIGHTED SUM. That was chosen so attention could

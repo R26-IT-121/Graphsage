@@ -327,6 +327,12 @@ def main() -> None:
             "seed": args.seed,
             "features": args.features,
             "prior_init": prior_init,
+            # Architecture, not just weights. The serving path rebuilds the
+            # model before loading these weights, so it has to know how this
+            # one aggregated — a checkpoint trained with the unnormalised sum
+            # scores differently under the normalised one, silently.
+            "attn_norm": args.attn_norm,
+            "attn_init_bias": args.attn_init_bias,
             "protocol": "temporal_snapshots_leakage_free",
             "hyperparameters": results["hyperparameters"],
         },
