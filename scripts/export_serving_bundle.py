@@ -58,6 +58,13 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--hidden-dim", type=int, default=64)
     parser.add_argument(
+        "--attn-norm", dest="attn_norm", action="store_true", default=None,
+        help="force attention-weighted mean, for checkpoints trained before "
+             "the flag was recorded in the checkpoint itself")
+    parser.add_argument(
+        "--no-attn-norm", dest="attn_norm", action="store_false",
+        help="force the unnormalised sum")
+    parser.add_argument(
         "--tag", default="",
         help="checkpoint suffix, matching train_temporal.py's --tag "
              "(e.g. attnnorm for temporal_stage3b_v2_seed0_attnnorm.pt)")
@@ -82,6 +89,21 @@ def main() -> None:
     graph = test
 
     ckpt = torch.load(ckpt_path, weights_only=False, map_location="cpu")
+
+    # How this checkpoint aggregated. Checkpoints written before that was
+    # recorded carry no key, and defaulting them to False silently runs
+    # attention-trained weights through the unnormalised path — which produces
+    # a bundle that loads, scores, and is wrong. --attn-norm overrides.
+    if args.attn_norm is not None:
+        attn_norm = args.attn_norm
+        source = "--attn-norm flag"
+    elif "attn_norm" in ckpt:
+        attn_norm = bool(ckpt["attn_norm"])
+        source = "the checkpoint"
+    else:
+        attn_norm = False
+        source = "default (checkpoint predates the flag)"
+    print(f"aggregation: attn_norm={attn_norm}, from {source}")
     if args.stage in NO_EDGE_MLP:
         model = BaselineGraphSAGE(
             in_dim=graph.x.shape[1], hidden_dim=args.hidden_dim
@@ -96,7 +118,7 @@ def main() -> None:
             in_dim=graph.x.shape[1],
             edge_dim=graph.edge_attr.shape[1],
             hidden_dim=args.hidden_dim,
-            attn_norm=bool(ckpt.get("attn_norm", False)),
+            attn_norm=attn_norm,
             attn_init_bias=float(ckpt.get("attn_init_bias", 0.0)),
         )
         has_attention = True
@@ -169,6 +191,25 @@ def main() -> None:
     size_mb = OUT_PATH.stat().st_size / 1024**2
 
     print(json.dumps(bundle["meta"], indent=2))
+
+    # A bundle is only trustworthy if it reproduces the run that produced the
+    # checkpoint. A mismatch means the model was rebuilt differently from how it
+    # was trained — the aggregation being the way that actually happened — and
+    # the result loads, scores, and is wrong with nothing downstream able to
+    # tell. Refuse to write it rather than ship it quietly.
+    report = REPO_ROOT / "reports" / "temporal" / f"{tag}.json"
+    if report.exists():
+        expected = json.loads(report.read_text())["val"]["f1"]
+        got = float(val_f1)
+        if abs(got - expected) > max(0.02, 0.10 * expected):
+            raise SystemExit(
+                f"\nABORT: this export scores val F1 {got:.4f}, but "
+                f"{report.name} recorded {expected:.4f}.\n"
+                f"The model was rebuilt differently from how it was trained.\n"
+                f"If the checkpoint predates the attn_norm flag, pass "
+                f"--attn-norm or --no-attn-norm explicitly."
+            )
+        print(f"check: val F1 {got:.4f} matches {report.name} ({expected:.4f})")
     print(
         f"\nthreshold: raw {raw_threshold:.4f} -> calibrated {threshold:.4f}"
         f"  (val F1 {val_f1:.4f})"
