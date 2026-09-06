@@ -1,0 +1,99 @@
+{
+  "protocol": "temporal_snapshots_leakage_free",
+  "stage": "3b",
+  "attn_norm": true,
+  "attn_init_bias": 3.0,
+  "clip_grad": 0.0,
+  "seed": 0,
+  "features": "v2",
+  "prior_init": true,
+  "best_epoch": 4,
+  "tuned_threshold": 0.9944096207618713,
+  "val": {
+    "threshold": 0.9944096207618713,
+    "precision": 0.4705056179775281,
+    "recall": 0.30344202898550726,
+    "f1": 0.368942731277533,
+    "auroc": 0.8920836512988093,
+    "pr_auc": 0.2835184084470506
+  },
+  "test": {
+    "threshold": 0.9944096207618713,
+    "precision": 0.6650717703349283,
+    "recall": 0.28600823045267487,
+    "f1": 0.4,
+    "auroc": 0.8812389488141135,
+    "pr_auc": 0.44903866946403564
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.5387671025944691,
+      "val_f1_tuned": 0.32213333328491045,
+      "val_pr_auc": 0.24483090740901664,
+      "elapsed_s": 5.8
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.08214554672732073,
+      "val_f1_tuned": 0.33602771357964256,
+      "val_pr_auc": 0.2595526892594207,
+      "elapsed_s": 4.0
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.060739965561558217,
+      "val_f1_tuned": 0.3599574014424917,
+      "val_pr_auc": 0.27760916032399346,
+      "elapsed_s": 3.9
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.040113519256313644,
+      "val_f1_tuned": 0.3689427312298629,
+      "val_pr_auc": 0.2835184084470506,
+      "elapsed_s": 5.3
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.02684774176747191,
+      "val_f1_tuned": 0.3659989171148771,
+      "val_pr_auc": 0.28114884101883714,
+      "elapsed_s": 3.9
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.018147029256557718,
+      "val_f1_tuned": 0.36112644942783073,
+      "val_pr_auc": 0.2789727441739319,
+      "elapsed_s": 3.9
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.01279908656051346,
+      "val_f1_tuned": 0.3603305784647409,
+      "val_pr_auc": 0.275787291996466,
+      "elapsed_s": 4.8
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.012345794652241702,
+      "val_f1_tuned": 0.3584387025361239,
+      "val_pr_auc": 0.273137731522128,
+      "elapsed_s": 4.3
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.01082550739759908,
+      "val_f1_tuned": 0.3564579807764728,
+      "val_pr_auc": 0.27023819327045556,
+      "elapsed_s": 3.9
+    }
+  ],
+  "hyperparameters": {
+    "hidden_dim": 64,
+    "lr": 0.001,
+    "loss": "FocalLoss",
+    "sampler": true
+  }
+}

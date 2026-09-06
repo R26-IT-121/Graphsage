@@ -1,0 +1,99 @@
+{
+  "protocol": "temporal_snapshots_leakage_free",
+  "stage": "2",
+  "attn_norm": false,
+  "attn_init_bias": 3.0,
+  "clip_grad": 0.0,
+  "seed": 0,
+  "features": "v2",
+  "prior_init": false,
+  "best_epoch": 4,
+  "tuned_threshold": 0.49992573261260986,
+  "val": {
+    "threshold": 0.49992573261260986,
+    "precision": 0.030107996072870076,
+    "recall": 1.0,
+    "f1": 0.058455999152811605,
+    "auroc": 0.656915447562026,
+    "pr_auc": 0.01949072886932206
+  },
+  "test": {
+    "threshold": 0.49992573261260986,
+    "precision": 0.09435061153174142,
+    "recall": 1.0,
+    "f1": 0.17243214475784993,
+    "auroc": 0.6960094131325776,
+    "pr_auc": 0.06809305860230067
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 2.2521138191223145,
+      "val_f1_tuned": 0.029290593517030002,
+      "val_pr_auc": 0.010049032332340219,
+      "elapsed_s": 1.1
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.7695406675338745,
+      "val_f1_tuned": 0.02901369214714992,
+      "val_pr_auc": 0.011072272887921775,
+      "elapsed_s": 0.8
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.5937174558639526,
+      "val_f1_tuned": 0.057965634275182004,
+      "val_pr_auc": 0.019417017857845296,
+      "elapsed_s": 0.8
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.560308575630188,
+      "val_f1_tuned": 0.05845599914713686,
+      "val_pr_auc": 0.01949072886932206,
+      "elapsed_s": 1.0
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.5328975915908813,
+      "val_f1_tuned": 0.058451356711731385,
+      "val_pr_auc": 0.019482508153941196,
+      "elapsed_s": 1.0
+    },
+    {
+      "epoch": 6,
+      "train_loss": 1.4980580806732178,
+      "val_f1_tuned": 0.058451356711731385,
+      "val_pr_auc": 0.019499847480749875,
+      "elapsed_s": 0.9
+    },
+    {
+      "epoch": 7,
+      "train_loss": 1.4392006397247314,
+      "val_f1_tuned": 0.058451356711731385,
+      "val_pr_auc": 0.01953194430078146,
+      "elapsed_s": 0.8
+    },
+    {
+      "epoch": 8,
+      "train_loss": 1.3665566444396973,
+      "val_f1_tuned": 0.05844980939712126,
+      "val_pr_auc": 0.019565640137510668,
+      "elapsed_s": 0.8
+    },
+    {
+      "epoch": 9,
+      "train_loss": 1.2812509536743164,
+      "val_f1_tuned": 0.05844980939712126,
+      "val_pr_auc": 0.019594330146213073,
+      "elapsed_s": 0.8
+    }
+  ],
+  "hyperparameters": {
+    "hidden_dim": 64,
+    "lr": 0.001,
+    "loss": "BCEWithLogitsLoss",
+    "sampler": false
+  }
+}

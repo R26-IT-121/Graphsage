@@ -1,0 +1,85 @@
+{
+  "protocol": "temporal_snapshots_leakage_free",
+  "stage": "3b",
+  "attn_norm": false,
+  "attn_init_bias": 0.0,
+  "clip_grad": 1.0,
+  "seed": 0,
+  "features": "v2",
+  "prior_init": true,
+  "best_epoch": 2,
+  "tuned_threshold": 0.9999607801437378,
+  "val": {
+    "threshold": 0.9999607801437378,
+    "precision": 0.3518886679920477,
+    "recall": 0.32065217391304346,
+    "f1": 0.3355450236966825,
+    "auroc": 0.8707238178842809,
+    "pr_auc": 0.2659648084181973
+  },
+  "test": {
+    "threshold": 0.9999607801437378,
+    "precision": 0.6016597510373444,
+    "recall": 0.29835390946502055,
+    "f1": 0.3988995873452545,
+    "auroc": 0.872700333065981,
+    "pr_auc": 0.43814277758421166
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.6080978318464523,
+      "val_f1_tuned": 0.329816768414519,
+      "val_pr_auc": 0.26048818537781515,
+      "elapsed_s": 4.4
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.016958372146986863,
+      "val_f1_tuned": 0.33554502364679034,
+      "val_pr_auc": 0.2659648084181973,
+      "elapsed_s": 4.8
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.012104621337379749,
+      "val_f1_tuned": 0.30206830201849455,
+      "val_pr_auc": 0.2263652619954462,
+      "elapsed_s": 4.3
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.011004469896137131,
+      "val_f1_tuned": 0.29692671389808717,
+      "val_pr_auc": 0.2169172614572433,
+      "elapsed_s": 3.9
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.009459422243868603,
+      "val_f1_tuned": 0.30075949362158194,
+      "val_pr_auc": 0.21514252245476131,
+      "elapsed_s": 4.3
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.01028064613951845,
+      "val_f1_tuned": 0.3107769423064597,
+      "val_pr_auc": 0.22760720573777513,
+      "elapsed_s": 4.7
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.00799767917259505,
+      "val_f1_tuned": 0.30619559646902955,
+      "val_pr_auc": 0.21169598644720322,
+      "elapsed_s": 3.9
+    }
+  ],
+  "hyperparameters": {
+    "hidden_dim": 64,
+    "lr": 0.001,
+    "loss": "FocalLoss",
+    "sampler": true
+  }
+}
