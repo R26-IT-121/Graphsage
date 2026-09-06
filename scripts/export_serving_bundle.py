@@ -57,11 +57,17 @@ def main() -> None:
     parser.add_argument("--features", choices=("v1", "v2"), default="v2")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--hidden-dim", type=int, default=64)
+    parser.add_argument(
+        "--tag", default="",
+        help="checkpoint suffix, matching train_temporal.py's --tag "
+             "(e.g. attnnorm for temporal_stage3b_v2_seed0_attnnorm.pt)")
     args = parser.parse_args()
 
     suffix = "_v2" if args.features == "v2" else ""
     snap_path = REPO_ROOT / "data" / "graph" / f"paysim_temporal{suffix}.pt"
     tag = f"stage{args.stage}{suffix}_seed{args.seed}"
+    if args.tag:
+        tag += f"_{args.tag}"
     ckpt_path = REPO_ROOT / "checkpoints" / f"temporal_{tag}.pt"
     for p in (snap_path, ckpt_path):
         if not p.exists():

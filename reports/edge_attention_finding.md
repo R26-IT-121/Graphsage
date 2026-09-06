@@ -57,16 +57,35 @@ alternative explanations — exploding gradients and a bad starting point.
 
 ## What it means for the contribution
 
-With the aggregation corrected, edge attention beats the arm that removes it:
+Two claims come out of this, and they are not equally strong.
+
+**The fix is beyond doubt.** Three seeds per arm:
 
 | configuration | val F1 | test F1 | test AUC | test PR-AUC |
 |---|---|---|---|---|
-| 3b as served | 0.3060 | 0.3895 | 0.8628 | 0.4252 |
-| 3c — no attention (3 seeds) | 0.3620 | 0.4043 | 0.8806 | 0.4477 |
-| **3b + attention-weighted mean** | **0.3699** | **0.4113** | **0.8839** | **0.4535** |
+| 3b as served (unnormalised sum) | 0.2980 ± 0.0084 | 0.3982 | 0.8650 | 0.4200 |
+| **3b + attention-weighted mean** | **0.3665 ± 0.0036** | **0.4064** | **0.8843** | **0.4520** |
 
-The corrected layer is the best configuration measured. **This is one seed
-against 3c's three, and confirmation across seeds 1 and 2 is outstanding.**
++0.0685 val F1, Cohen's d = 10.6, p < 0.001, no overlap between the two sets of
+seeds. The aggregation was wrong and correcting it is a large, certain gain.
+
+**Whether attention itself helps is not yet established.**
+
+| configuration | val F1 (3 seeds) | seeds |
+|---|---|---|
+| 3b + attention-weighted mean | 0.3665 ± 0.0036 | 0.3699, 0.3669, 0.3627 |
+| 3c — the same system, no attention | 0.3620 ± 0.0040 | 0.3635, 0.3649, 0.3575 |
+
+The difference is **+0.0045 val F1, p = 0.216 (Welch, n = 3 per arm)**. The
+ranges overlap: the worst seed with attention (0.3627) falls below the best
+seed without it (0.3649). Cohen's d is 1.20 — a real effect size, but three
+seeds cannot resolve an effect that size. Roughly twelve seeds per arm would be
+needed for 80% power.
+
+So the defensible statement today is: **with correct aggregation, edge
+attention no longer harms the model, and may help; the difference is inside the
+noise at three seeds.** Reporting it as a confirmed improvement would overstate
+what was measured.
 
 ## What this says about the method
 
