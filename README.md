@@ -33,7 +33,6 @@ Graphsage/
 │   ├── inference/         # Risk scoring
 │   ├── extraction/        # Suspicious Subgraph extractor
 │   ├── api/               # FastAPI service + Pydantic schemas
-│   └── utils/             # Config loader, logging
 ├── configs/               # YAML hyperparameters
 ├── scripts/               # Dataset downloader, API runner
 ├── checkpoints/           # Trained model weights (gitignored)
@@ -156,7 +155,7 @@ Cross-cutting practices applied across the codebase:
 | **Memory** | Optimal pandas dtypes (`category`, `int8`, `float32`) | `src/graphsage/data/ingestion.py` |
 | **I/O** | Cache processed features as Parquet (~10× smaller than CSV); cache PyG graph as `.pt` (instant reload) | `data/processed/`, `data/graph/` |
 | **Compute** | Vectorized DataFrame operations only — no `.iterrows()`. PyG `NeighborLoader` for batched training. | `src/graphsage/data/`, `src/graphsage/training/` |
-| **Hardware** | Auto-detect CUDA / MPS / CPU at runtime | `src/graphsage/utils/` |
+| **Hardware** | Auto-detect CUDA / MPS / CPU at runtime | `src/graphsage/training/trainer.py` |
 | **Reproducibility** | Single source of truth for hyperparameters in `configs/model_config.yaml` | All notebooks + scripts read from here |
 | **Portability** | Pure Python + cross-platform paths (`pathlib`); no OS-specific commands inside the codebase | All modules |
 
