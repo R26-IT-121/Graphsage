@@ -1,0 +1,763 @@
+<title>DeepSentinel Presentation Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ink: 22 28 33; --muted: 88 100 110; --faint: 124 136 145;
+    --line: 219 224 229; --ground: 247 248 249; --surface: 255 255 255;
+    --surface-2: 240 242 244; --accent: 14 120 108; --accent-strong: 9 96 86;
+    --accent-soft: 214 240 235; --good: 22 130 70; --warn: 176 106 12; --bad: 186 44 34;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: 226 232 236; --muted: 150 163 172; --faint: 108 122 131;
+      --line: 42 50 56; --ground: 14 17 19; --surface: 22 26 29;
+      --surface-2: 29 34 38; --accent: 45 212 191; --accent-strong: 94 231 213;
+      --accent-soft: 20 60 56; --good: 74 222 128; --warn: 255 180 84; --bad: 255 107 92;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: 226 232 236; --muted: 150 163 172; --faint: 108 122 131;
+    --line: 42 50 56; --ground: 14 17 19; --surface: 22 26 29;
+    --surface-2: 29 34 38; --accent: 45 212 191; --accent-strong: 94 231 213;
+    --accent-soft: 20 60 56; --good: 74 222 128; --warn: 255 180 84; --bad: 255 107 92;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: rgb(var(--ground)); color: rgb(var(--ink));
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 16px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 44px 26px 120px; }
+  .shell { display: grid; gap: 40px; }
+  @media (min-width: 1000px) { .shell { grid-template-columns: 210px 1fr; } }
+
+  nav.toc { align-self: start; font-size: 14px; }
+  @media (min-width: 1000px) { nav.toc { position: sticky; top: 24px; } }
+  nav.toc p { font-family: 'DM Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .14em; color: rgb(var(--faint)); margin: 0 0 10px; }
+  nav.toc a { display: block; padding: 5px 0 5px 10px; color: rgb(var(--muted));
+    text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: rgb(var(--ink)); border-left-color: rgb(var(--accent)); }
+  nav.toc .sub { padding-left: 22px; font-size: 13px; }
+
+  h1 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+    font-size: clamp(38px, 5vw, 56px); line-height: 1.04; letter-spacing: -.02em;
+    margin: 12px 0 0; text-wrap: balance; }
+  h2 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+    font-size: 32px; line-height: 1.16; letter-spacing: -.015em;
+    margin: 60px 0 6px; padding-bottom: 11px;
+    border-bottom: 1px solid rgb(var(--line)); scroll-margin-top: 20px;
+    display: flex; align-items: baseline; gap: 13px; }
+  h2 .n { font-family: 'DM Mono', monospace; font-size: 13px; color: rgb(var(--faint)); flex: 0 0 auto; }
+  h3 { font-size: 18px; font-weight: 700; margin: 32px 0 6px; letter-spacing: -.01em; }
+  h4 { font-size: 15px; font-weight: 700; margin: 22px 0 4px; }
+  p, li { max-width: 74ch; } p { margin: 13px 0; }
+  .lede { font-size: 18px; color: rgb(var(--muted)); max-width: 68ch; margin-top: 16px; }
+  ul, ol { padding-left: 21px; } li { margin: 7px 0; }
+  code { font-family: 'DM Mono', monospace; font-size: .9em;
+    background: rgb(var(--surface-2)); padding: 2px 6px; border-radius: 4px; }
+  pre { font-family: 'DM Mono', monospace; font-size: 13px; line-height: 1.6;
+    background: rgb(var(--surface)); border: 1px solid rgb(var(--line));
+    border-radius: 10px; padding: 15px 17px; overflow-x: auto; margin: 16px 0; }
+  pre code { background: none; padding: 0; }
+
+  .card { background: rgb(var(--surface)); border: 1px solid rgb(var(--line));
+    border-radius: 12px; padding: 18px 20px; margin: 18px 0; }
+  .rail { border-left: 3px solid rgb(var(--accent)); border-radius: 0 10px 10px 0;
+    background: rgb(var(--surface)); padding: 15px 18px; margin: 18px 0; }
+  .rail.warn { border-left-color: rgb(var(--warn)); }
+  .rail.bad { border-left-color: rgb(var(--bad)); }
+  .rail .t { font-weight: 700; font-size: 16px; }
+  .rail p { margin: 5px 0 0; font-size: 15px; color: rgb(var(--muted)); }
+  .say { background: rgb(var(--accent-soft)); border-radius: 10px;
+    padding: 13px 16px; margin: 14px 0; font-size: 16px; }
+  .say b { font-family: 'DM Mono', monospace; font-size: 11px; display: block;
+    text-transform: uppercase; letter-spacing: .13em; color: rgb(var(--accent-strong));
+    margin-bottom: 5px; font-weight: 500; }
+
+  .scroll { overflow-x: auto; margin: 18px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 520px; }
+  th { text-align: left; font-family: 'DM Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .12em; color: rgb(var(--faint));
+    font-weight: 500; padding: 0 14px 9px 0;
+    border-bottom: 1px solid rgb(var(--line)); white-space: nowrap; }
+  td { padding: 9px 14px 9px 0; vertical-align: top; border-bottom: 1px solid rgb(var(--line)); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .num { font-family: 'DM Mono', monospace; font-variant-numeric: tabular-nums; }
+  td.k { font-family: 'DM Mono', monospace; font-size: 13px; white-space: nowrap; }
+
+  .flow { display: grid; gap: 11px; margin: 20px 0;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); }
+  .step { background: rgb(var(--surface)); border: 1px solid rgb(var(--line));
+    border-radius: 11px; padding: 14px; }
+  .step .i { font-family: 'DM Mono', monospace; font-size: 11px;
+    color: rgb(var(--accent-strong)); letter-spacing: .1em; }
+  .step .q { font-weight: 700; margin-top: 5px; line-height: 1.28; }
+  .step .o { font-size: 14px; color: rgb(var(--muted)); margin-top: 5px; }
+
+  .qa { border-bottom: 1px solid rgb(var(--line)); padding: 16px 0; }
+  .qa:last-child { border-bottom: 0; }
+  .qa .q { font-weight: 700; font-size: 16px; }
+  .qa .a { margin-top: 7px; color: rgb(var(--muted)); font-size: 15px; }
+  .qa .a strong { color: rgb(var(--ink)); }
+
+  footer { margin-top: 70px; padding-top: 20px;
+    border-top: 1px solid rgb(var(--line)); font-size: 14px; color: rgb(var(--faint)); }
+
+  @media print {
+    nav.toc { display: none; } .shell { grid-template-columns: 1fr; }
+    h2 { break-after: avoid; } .card, .rail, pre, table { break-inside: avoid; }
+    body { font-size: 11pt; }
+  }
+</style>
+
+<div class="wrap">
+<div class="shell">
+
+<nav class="toc">
+  <p>Contents</p>
+  <a href="#run">00 · Get it running</a>
+  <a href="#zip" class="sub">the setup zip</a>
+  <a href="#what">01 · What the system is</a>
+  <a href="#tour">02 · Website tour</a>
+  <a href="#graphsage">03 · GraphSAGE, A–Z</a>
+  <a href="#code" class="sub">the codebase</a>
+  <a href="#results" class="sub">the ablation</a>
+  <a href="#fusion">04 · Fusion engine, A–Z</a>
+  <a href="#rag" class="sub">where the RAG is</a>
+  <a href="#threshold">05 · Thresholds</a>
+  <a href="#validate">06 · Validation</a>
+  <a href="#qa">07 · Panel questions</a>
+  <a href="#limits">08 · Limitations</a>
+</nav>
+
+<main>
+  <p style="font-family:'DM Mono',monospace;font-size:12px;text-transform:uppercase;
+            letter-spacing:.16em;color:rgb(var(--accent-strong))">Presentation guide</p>
+  <h1>DeepSentinel, end to end</h1>
+  <p class="lede">
+    Everything you need to run the system, walk a panel through it, and answer
+    the questions they will ask. Read section 00 first — it is the only part you
+    need before the room.
+  </p>
+
+  <h2 id="run"><span class="n">00</span> Get it running</h2>
+
+  <p>One command. It starts all six services detached, so closing a terminal
+  cannot take them down.</p>
+
+<pre><code>cd ~/Downloads/Fusion\ Engine/R26-IT-121
+./start-deepsentinel.command</code></pre>
+
+  <p>Then open <code>http://localhost:5173</code>. To stop everything:
+  <code>./stop-deepsentinel.command</code>. Logs land in <code>logs/</code>.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Port</th><th>Service</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td class="k">8002</td><td>Network</td><td>your GraphSAGE detector</td></tr>
+      <tr><td class="k">8001</td><td>Behaviour</td><td>Member 2's VAE</td></tr>
+      <tr><td class="k">8003</td><td>Timing</td><td>Member 3's TCN — needs Python 3.12</td></tr>
+      <tr><td class="k">8090</td><td>Platform</td><td>Member 4's fusion engine and API</td></tr>
+      <tr><td class="k">8600</td><td>Query Runner</td><td>puts transactions into the queue</td></tr>
+      <tr><td class="k">5173</td><td>Console</td><td>the website</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="rail warn">
+    <div class="t">Two things that will bite you on stage</div>
+    <p><b>Timing needs 32 transactions</b> before it can score anything. Its
+    window is empty at startup. The detector pages fill it automatically now, but
+    if you demo the live monitor with a short file, Timing will abstain.</p>
+    <p style="margin-top:8px"><b>The Query Runner writes to Neon Postgres</b>, and
+    the monitor reads from the same place. If the monitor shows nothing after an
+    upload, that connection is the first thing to check.</p>
+  </div>
+
+  <h3 id="zip" style="scroll-margin-top:20px">Handing GraphSAGE to someone else</h3>
+  <p>The detector on its own — code, trained weights, and the prebuilt graph that
+  git excludes — is packaged at
+  <code>~/Downloads/DeepSentinel-GraphSAGE-Setup.zip</code> (71 MB, unpacks to
+  393 MB). It runs anywhere it is unzipped, with no database and no network
+  access after install.</p>
+<pre><code>unzip DeepSentinel-GraphSAGE-Setup.zip
+cd DeepSentinel-GraphSAGE-Setup
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e .        # the -e matters
+./run.sh                # serves on :8002</code></pre>
+  <p>It contains the 162 MB serving bundle, the node-name index, the v2 node
+  features, <strong>all five ablation checkpoints</strong>, the per-stage
+  reports, the EDA figures, and a labelled demo CSV. <code>START-HERE.md</code>
+  inside covers running it, retraining it, and what each artefact is for.</p>
+  <p style="font-size:15px;color:rgb(var(--muted))">
+    The <code>-e</code> is not cosmetic: the service finds <code>data/</code> by
+    walking up from its own source file, so a non-editable install sends it
+    looking inside <code>site-packages</code>.</p>
+
+  <h3>Sixty-second sanity check before you leave the house</h3>
+  <ol>
+    <li>Open the console. The sidebar footer should say <strong>All models ready</strong>.</li>
+    <li>Go to <strong>Fusion</strong>. The five pipeline stages should all be green.</li>
+    <li>Go to <strong>Network</strong>. Open the explorer, search <code>C1988852187</code>, see the graph.</li>
+  </ol>
+  <p>If those three work, everything in this guide works.</p>
+
+  <h2 id="what"><span class="n">01</span> What the system is</h2>
+
+  <p>Three independent fraud detectors look at the same transaction from three
+  different angles. A fourth component weighs their opinions into one verdict,
+  looks the pattern up against known money-laundering typologies, writes the
+  case up, and delivers it.</p>
+
+  <div class="flow">
+    <div class="step"><div class="i">DETECTOR</div><div class="q">Network</div>
+      <div class="o">Who pays whom, two steps out. Yours.</div></div>
+    <div class="step"><div class="i">DETECTOR</div><div class="q">Behaviour</div>
+      <div class="o">Does this fit its own transaction type?</div></div>
+    <div class="step"><div class="i">DETECTOR</div><div class="q">Timing</div>
+      <div class="o">The 32 transactions it arrived among.</div></div>
+    <div class="step"><div class="i">FUSION</div><div class="q">One verdict</div>
+      <div class="o">Weighs the three. Member 4's.</div></div>
+    <div class="step"><div class="i">EVIDENCE</div><div class="q">Report</div>
+      <div class="o">Typology, narrative, PDF, email.</div></div>
+  </div>
+
+  <div class="say">
+    <b>Say this</b>
+    A single model sees one kind of evidence. Fraud leaves three kinds. The
+    contribution is not a better detector — it is combining three so that the
+    one which happens to see the fraud carries the verdict.
+  </div>
+
+  <h3>Where the data lives — this matters</h3>
+  <p>There are two separate stores and they never touch.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th></th><th>The bundle</th><th>The database</th></tr></thead>
+    <tbody>
+      <tr><td class="k">holds</td><td>a frozen PaySim graph: 3,277,509 accounts,
+        2,770,409 transfers, plus every account's precomputed score</td>
+        <td>the live queue, analyses, cases, audit log</td></tr>
+      <tr><td class="k">used by</td><td>the Network detector only</td>
+        <td>the monitor and the console</td></tr>
+      <tr><td class="k">changes</td><td>never — it is history</td><td>constantly</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>So <strong>clearing the database does not empty the graph explorer</strong>.
+  The graph service contains no database code at all. If asked, that is correct
+  behaviour: the bundle is the history the model reasons about, not a view of
+  today's traffic.</p>
+
+  <h4>Where the models sit</h4>
+  <p>The Query Runner writes arriving transactions into
+  <code>transactions_live</code>. The monitor <strong>polls that table</strong>,
+  claims a batch with <code>FOR UPDATE SKIP LOCKED</code>, and calls all three
+  detectors in parallel. The Query Runner never talks to a model — the database
+  is the queue between them. Nothing is lost if a detector is down: the row is
+  already committed before any model sees it.</p>
+
+  <h2 id="tour"><span class="n">02</span> Website tour</h2>
+
+  <p>Two consoles behind one login. An administrator runs the system; everyone
+  else works the cases.</p>
+
+  <h3>The public site</h3>
+  <ul>
+    <li><strong>Overview</strong> — the argument for the product.</li>
+    <li><strong>Components</strong> — the four research components.</li>
+    <li><strong>Architecture</strong> — how it fits together.</li>
+    <li><strong>Pricing</strong> — three plans, built from the licence gate so the
+      page cannot advertise a feature the software will not unlock.</li>
+    <li><strong>FAQ</strong>, <strong>Live map</strong> — the spinning globe. The
+      events on it are <em>simulated</em> and the page says so.</li>
+  </ul>
+
+  <h3>The console — Detectors group</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Page</th><th>What to show</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Network</td><td>The payment graph, demo mode, and your
+        held-out metrics. <strong>This is your page.</strong></td></tr>
+      <tr><td class="k">Behaviour</td><td>Member 2's VAE: three z-scores and the
+        two dual-signal strings.</td></tr>
+      <tr><td class="k">Timing</td><td>Member 3's TCN: the 32-slot window with the
+        attended transaction named.</td></tr>
+      <tr><td class="k">Fusion</td><td>Member 4's. Five tabs — Pipeline, Score a
+        file, Live, Typologies, Model.</td></tr>
+      <tr><td class="k">Side by side</td><td>All three detectors on one
+        transaction, admin only.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The rest</h3>
+  <ul>
+    <li><strong>System</strong> — is anything down. Per-detector health, delivery, queue.</li>
+    <li><strong>Live monitor</strong> — the stream, with alerts as they fire.</li>
+    <li><strong>Cases</strong>, <strong>Batch upload</strong>, <strong>Analyzer</strong> — the operator's workflow.</li>
+    <li><strong>Thresholds</strong> — replay stored decisions at a different line.</li>
+    <li><strong>Report style</strong> — five PDF looks. Same facts, same order, same words.</li>
+  </ul>
+
+  <h2 id="graphsage"><span class="n">03</span> GraphSAGE, A–Z</h2>
+
+  <h3>The gap</h3>
+  <p>Fraud detection normally judges one payment on its own: amount, balance,
+  time. Judged that way, moving stolen money is nearly invisible — it is done in
+  small ordinary steps. The shape only appears when you look at how accounts are
+  joined to each other.</p>
+  <p>And the accounts that matter are always new. A model that can only recognise
+  accounts it has seen before is blind to exactly the ones used to receive stolen
+  money.</p>
+
+  <h3>The three novelties, and what each turned out to be worth</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Novelty</th><th>What it does</th><th>Measured</th></tr></thead>
+    <tbody>
+      <tr><td class="k">1 · Edge-MLP attention<br><span style="font-weight:400">models/layers.py</span></td>
+        <td>Weighs each transfer by how unusual it is, instead of treating every
+          edge as equal.</td>
+        <td><strong>No measurable effect</strong> (n=12, p=0.73). Section 03's
+          ablation explains why, and why finding that is a result.</td></tr>
+      <tr><td class="k">2 · Sampler + focal loss<br><span style="font-weight:400">sampling/, training/losses.py</span></td>
+        <td>Fraud is 1 in 773. Training is arranged so the model is not simply
+          rewarded for saying no.</td>
+        <td><strong>Works.</strong> The sampler alone is worth +0.16 test F1 —
+          the largest single contribution.</td></tr>
+      <tr><td class="k">3 · Subgraph extractor<br><span style="font-weight:400">extraction/subgraph.py</span></td>
+        <td>Returns the cluster of accounts behind the score, with per-edge
+          attention — evidence, not just a number.</td>
+        <td>Explainability, not accuracy. Unaffected by the above.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="say">
+    <b>Say this about focal alpha</b>
+    We use α = 0.95, not the 0.25 from the original focal-loss paper. That value
+    is for object detection. On a 773:1 imbalance it puts most of the weight on
+    the majority class and the model converges to predicting no-fraud for
+    everything. Choosing it deliberately is the point.
+  </div>
+
+  <h3>Data preparation</h3>
+  <ol>
+    <li><strong>Download</strong> PaySim — <code>scripts/download_paysim.py</code>.</li>
+    <li><strong>Six edge features</strong> — <code>scripts/prepare_features.py</code>:
+      <code>amount_log</code>, <code>drain_ratio</code>, <code>src_drained</code>,
+      <code>dst_was_empty</code>, <code>time_gap</code>, <code>type_is_transfer</code>.</li>
+    <li><strong>Twelve node features</strong> — degrees, mean and max amounts,
+      amount uniformity (smurfing), fan-in/out distinctness, outgoing drain,
+      fresh-receiver ratio, velocity, first appearance. Count-like columns are
+      <code>log1p</code>-scaled so degrees do not drown out ratios.</li>
+    <li><strong>Build the graph</strong> — <code>scripts/build_temporal_graph.py</code>.</li>
+  </ol>
+
+  <h3>The split — and why it is the most defensible thing you have</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Window</th><th>Steps</th><th>Accounts judged</th><th>Mules</th></tr></thead>
+    <tbody>
+      <tr><td class="k">train</td><td class="num">1–600</td><td class="num">3,223,968</td><td class="num">6,579</td></tr>
+      <tr><td class="k">val</td><td class="num">601–700</td><td class="num">75,000</td><td class="num">1,104</td></tr>
+      <tr><td class="k">test</td><td class="num">701–743</td><td class="num">10,368</td><td class="num">486</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Features are recomputed <em>per snapshot</em>, so a training-window feature
+  never contains information from the future. The protocol is named in the
+  artefact itself: <code>temporal_snapshots_leakage_free</code>.</p>
+
+  <h3 id="code">The codebase, file by file</h3>
+  <p>A full walkthrough — every file, what runs on a request, and where the three
+  novelties live — is in the companion document,
+  <em>Inside the network detector</em>. The short version:</p>
+
+  <div class="scroll"><table><tbody>
+    <tr><td class="k">models/layers.py</td><td>EdgeEnhancedSAGEConv — Novelty 1, the per-edge attention MLP.</td></tr>
+    <tr><td class="k">models/edge_sage.py</td><td>The full Edge-Enhanced GraphSAGE. What is served.</td></tr>
+    <tr><td class="k">models/baseline.py</td><td>Plain GraphSAGE — stage 1, the baseline everything is measured against.</td></tr>
+    <tr><td class="k">data/temporal.py</td><td>The leakage-free snapshots. <code>_node_features_v2</code> is the authoritative feature definition.</td></tr>
+    <tr><td class="k">sampling/imbalance_sampler.py</td><td>Novelty 2 — the graph-aware sampler.</td></tr>
+    <tr><td class="k">training/threshold_tuning.py</td><td>Tunes on validation, evaluates on test. The separation is in the signature.</td></tr>
+    <tr><td class="k">inference/predictor.py</td><td>Owns all serving state. Start reading here — 216 lines, touches everything.</td></tr>
+    <tr><td class="k">inference/inductive.py</td><td>Scoring an account the graph has never seen. Pinned to the training feature builder by a test.</td></tr>
+    <tr><td class="k">extraction/subgraph.py</td><td>Novelty 3 — the suspicious subgraph, and the explorer's neighbourhood view.</td></tr>
+    <tr><td class="k">scripts/train_temporal.py</td><td>Runs any stage under the leakage-free protocol. This produced everything below.</td></tr>
+  </tbody></table></div>
+
+  <div class="rail bad">
+    <div class="t">Four files are empty — know before someone opens one</div>
+    <p><code>data/features.py</code>, <code>data/ingestion.py</code>,
+    <code>utils/config.py</code> and <code>utils/logging.py</code> each hold a
+    single docstring and no code, and nothing imports them. The work lives in
+    <code>scripts/prepare_features.py</code>, <code>data/graph_builder.py</code>
+    and <code>configs/model_config.yaml</code>. Say so before it is found.</p>
+  </div>
+
+  <h4>Hyperparameters, and how they were chosen</h4>
+  <div class="scroll"><table>
+    <thead><tr><th>Parameter</th><th>Value</th><th>Why</th></tr></thead><tbody>
+    <tr><td class="k">hidden_dim</td><td class="num">64</td><td>10,563 parameters total — small enough to train on a free Colab T4.</td></tr>
+    <tr><td class="k">num_layers / k_hop</td><td class="num">2</td><td>Two hops. On this graph a third adds almost nothing: most senders are one-shot.</td></tr>
+    <tr><td class="k">dropout</td><td class="num">0.3</td><td>Standard.</td></tr>
+    <tr><td class="k">focal_alpha</td><td class="num">0.95</td><td>Chosen for a 773:1 imbalance, not copied from the paper's 0.25.</td></tr>
+    <tr><td class="k">focal_gamma</td><td class="num">2.0</td><td>The paper's value; it holds here.</td></tr>
+    <tr><td class="k">learning_rate</td><td class="num">0.001</td><td>Adam default.</td></tr>
+    <tr><td class="k">threshold</td><td class="num">0.1830</td><td><strong>Tuned on the validation window for best F1. Never on test.</strong></td></tr>
+    </tbody></table></div>
+  <h3 id="results">Baselines, and where you are now</h3>
+
+  <p>Every stage retrained under the leakage-free protocol, three seeds each,
+  each at its own validation-tuned threshold. <strong>These replace the older
+  ablation entirely</strong> — those numbers came from a protocol that leaked
+  future information into the features.</p>
+
+  <div class="scroll"><table>
+    <thead><tr><th>Stage</th><th>What it adds</th><th>Val F1</th><th>Test F1</th><th>Test AUC</th></tr></thead>
+    <tbody>
+      <tr><td class="k">1</td><td>baseline GraphSAGE</td>
+        <td class="num">0.3198 ± 0.049</td><td class="num">0.3738</td><td class="num">0.8570</td></tr>
+      <tr><td class="k">2</td><td>+ Edge-MLP attention</td>
+        <td class="num">0.0585 ± 0.000</td><td class="num">0.1724</td><td class="num">0.7022</td></tr>
+      <tr><td class="k">3a</td><td>+ focal loss</td>
+        <td class="num">0.1559 ± 0.153</td><td class="num">0.2711</td><td class="num">0.7933</td></tr>
+      <tr><td class="k">3b</td><td>+ imbalance sampler</td>
+        <td class="num">0.2980 ± 0.008</td><td class="num">0.3982</td><td class="num">0.8650</td></tr>
+      <tr><td class="k">3b*</td><td><strong>+ corrected aggregation — served</strong></td>
+        <td class="num"><strong>0.3645 ± 0.004</strong></td><td class="num"><strong>0.4064</strong></td><td class="num"><strong>0.8843</strong></td></tr>
+      <tr><td class="k">3c</td><td>3b* without the Edge-MLP</td>
+        <td class="num">0.3650 ± 0.004</td><td class="num">0.4043</td><td class="num">0.8806</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="rail bad">
+    <div class="t">The finding to lead with</div>
+    <p>Stage 2 scoring below the baseline it extends was not a result about
+    attention — it was a bug in our own layer. <code>SAGEConv</code> aggregates
+    with <code>mean</code>; our edge layer used an unnormalised <code>add</code>,
+    so stage 2 vs 1 changed <em>two</em> things and never isolated attention.
+    In-degree reaches 75, so hub activations scaled with degree.</p>
+    <p style="margin-top:8px">Correcting it to an attention-weighted mean took
+    stage 2 from <strong>0.0585 to 0.2777</strong> val F1 — PR-AUC up
+    <strong>ten-fold</strong>. Gradient clipping and a changed initialisation
+    did nothing, which rules out the two obvious alternatives.</p>
+  </div>
+
+  <h4>Does edge attention help? No — and that is measured, not assumed</h4>
+  <p>With the aggregation fixed, <strong>twelve seeds per arm</strong>:</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Configuration</th><th>n</th><th>Val F1</th></tr></thead><tbody>
+    <tr><td>3b* with attention</td><td class="num">12</td><td class="num">0.3645 ± 0.0035</td></tr>
+    <tr><td>3c without it</td><td class="num">12</td><td class="num">0.3650 ± 0.0036</td></tr>
+    </tbody></table></div>
+  <p><strong>Difference −0.0005, Cohen&rsquo;s d = −0.14, p = 0.729.</strong> At
+  three seeds attention appeared 0.0045 ahead; under power that reversed sign.</p>
+
+  <div class="say">
+    <b>Say this, precisely</b>
+    Attention does not hurt — that was the aggregation bug. And this is not
+    &ldquo;inconclusive&rdquo;: twelve seeds per arm around d = −0.14 is a
+    positive finding of <em>no effect</em>. In hindsight the six edge features
+    are largely redundant with the twelve node features, which already encode
+    the same drain-to-empty event.
+  </div>
+
+  <div class="rail">
+    <div class="t">Why the leave-one-out arm mattered</div>
+    <p>The additive chain 1 → 2 → 3a → 3b would have shown stage 2 failing and
+    invited the conclusion that attention does not work on sparse graphs. It was
+    stage 3c — the arm that <em>removes</em> the component from the finished
+    system — that exposed the contradiction: a component cannot be both useless
+    in isolation and load-bearing in situ. Designing that arm is what caught a
+    bug in our own code.</p>
+  </div>
+
+  <h4>What the served model scores</h4>
+  <div class="scroll"><table>
+    <thead><tr><th>Metric</th><th>Value</th><th>Reading</th></tr></thead><tbody>
+    <tr><td class="k">Precision</td><td class="num">0.668</td><td>two thirds of what it flags are genuinely mules</td></tr>
+    <tr><td class="k">Recall</td><td class="num">0.271</td><td>it finds about a quarter of them</td></tr>
+    <tr><td class="k">F1</td><td class="num">0.386</td><td>the balance</td></tr>
+    <tr><td class="k">Accuracy</td><td class="num">0.919</td><td><strong>ignore it</strong> — flagging nothing scores 0.906</td></tr>
+    </tbody></table></div>
+  <p style="font-size:15px;color:rgb(var(--muted))">
+    5,202 accounts evaluated, 490 were mules. 133 caught, 66 false alarms, 357
+    missed. The corrected model raises test F1 to 0.4064 and AUC to 0.8843; the
+    console figures update when the bundle is re-exported.</p>
+
+  <div class="rail">
+    <div class="t">Why recall is only 0.27 — have this ready</div>
+    <p>PaySim&rsquo;s graph is 507,100 disconnected components and the largest has 90
+    accounts. Every one of the four biggest is a <strong>tree</strong> — exactly
+    n−1 edges, no cycles. Almost every sender makes one transfer and vanishes.
+    For most accounts there is barely any neighbourhood to read. That is a
+    property of the data, and it is why fusing three detectors matters.</p>
+  </div>
+
+  <h2 id="fusion"><span class="n">04</span> Fusion engine, A–Z</h2>
+
+  <p>Member 4's component is five things, not one. The Fusion page shows them as
+  five stages, each checked live.</p>
+
+  <div class="flow">
+    <div class="step"><div class="i">01</div><div class="q">Meta-classifier</div>
+      <div class="o">Weighs three scores into one confidence.</div></div>
+    <div class="step"><div class="i">02</div><div class="q">FATF typology</div>
+      <div class="o">Finds the closest known pattern. The RAG.</div></div>
+    <div class="step"><div class="i">03</div><div class="q">Report writer</div>
+      <div class="o">Writes it up, citing only what was retrieved.</div></div>
+    <div class="step"><div class="i">04</div><div class="q">PDF writer</div>
+      <div class="o">Renders the filed document.</div></div>
+    <div class="step"><div class="i">05</div><div class="q">Email</div>
+      <div class="o">Delivers it to risk managers.</div></div>
+  </div>
+
+  <p><strong>Only the first stage changes a verdict.</strong> The other four fail
+  quietly — a report generator out of quota and an expired mail password both
+  leave the scores looking perfect. That is why they are checked on their own.</p>
+
+  <h3>How the meta-classifier works</h3>
+  <p>Three detectors vote; the votes are weighted; the total is squashed to a
+  probability. A StandardScaler followed by a logistic regression, so it
+  decomposes exactly:</p>
+<pre><code>z = intercept + Σ coefficient · (score − mean) / scale
+
+              mean     scale    coefficient
+network      0.2891   0.2139       1.6549
+behaviour    0.3162   0.2458       2.9429
+timing       0.3635   0.2898       4.5059     intercept −2.4081</code></pre>
+
+  <p>Worked through on a real case — row 84 of the showcase file:</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Detector</th><th>Score</th><th>Centred</th><th>× coef</th><th>Contribution</th></tr></thead><tbody>
+    <tr><td>network</td><td class="num">0.3908</td><td class="num">0.4753</td><td class="num">1.6549</td><td class="num">+0.7866</td></tr>
+    <tr><td>behaviour</td><td class="num">0.2080</td><td class="num">−0.4402</td><td class="num">2.9429</td><td class="num">−1.2954</td></tr>
+    <tr><td>timing</td><td class="num">0.9203</td><td class="num">1.9216</td><td class="num">4.5059</td><td class="num">+8.6587</td></tr>
+    <tr><td>intercept</td><td></td><td></td><td></td><td class="num">−2.4081</td></tr>
+    <tr><td><strong>total z</strong></td><td></td><td></td><td></td><td class="num"><strong>5.7418</strong></td></tr>
+    </tbody></table></div>
+  <p><code>1 / (1 + e^−5.7418) = 0.9968</code> — exactly what the console reported.
+  <strong>Behaviour voted innocent and was outvoted.</strong> One detector seeing
+  the fraud is enough, which is the whole argument for fusing three.</p>
+  <p><strong>This is not SHAP and not an approximation</strong> — for a linear
+  model the attribution <em>is</em> the model, read back out.</p>
+
+  <h4>When a detector does not answer</h4>
+  <p>Its score is imputed at its own training mean — an absent opinion is
+  neutral, not an argument for innocence — and the whole log-odds is shrunk by
+  0.18 per missing detector, so the number itself says less evidence went into
+  it.</p>
+
+  <h3 id="rag">Member 4's RAG — yes, it exists, here it is</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Piece</th><th>Where</th></tr></thead><tbody>
+    <tr><td>Knowledge base builder</td><td class="k">backend/rag/knowledge_base.py</td></tr>
+    <tr><td>Retriever</td><td class="k">backend/rag/retriever.py</td></tr>
+    <tr><td>Prompt construction</td><td class="k">backend/rag/prompt_builder.py</td></tr>
+    <tr><td>The corpus — 10 FATF typologies</td><td class="k">data/fatf_typologies.json</td></tr>
+    <tr><td>The vector store — ChromaDB, 560 KB</td><td class="k">chroma_store/</td></tr>
+    <tr><td>Embedding model</td><td class="k">all-MiniLM-L6-v2, pinned to CPU</td></tr>
+    </tbody></table></div>
+
+  <h4>How a typology is matched — be precise about this</h4>
+  <ol>
+    <li>Each score becomes a word: <code>≥0.75</code> high, <code>≥0.40</code>
+      medium, else low.</li>
+    <li>The words become a sentence — <em>"Financial fraud with low graph network
+      signal… Dominant detection modality is temporal analysis."</em></li>
+    <li>That sentence is embedded and compared by cosine similarity against the
+      ten typologies. Nearest wins.</li>
+  </ol>
+  <p><strong>The signal columns in the typology table are not what does the
+  matching.</strong> They are metadata describing what each pattern expects — a
+  check you can eyeball, not the mechanism.</p>
+
+  <h3>Does fusing actually beat the parts?</h3>
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>PR-AUC</th><th>AUROC</th></tr></thead><tbody>
+    <tr><td><strong>Fused verdict</strong></td><td class="num"><strong>0.9646</strong></td><td class="num">0.9850</td></tr>
+    <tr><td>Timing alone</td><td class="num">0.9517</td><td class="num">0.9856</td></tr>
+    <tr><td>Behaviour alone</td><td class="num">0.9343</td><td class="num"><strong>0.9943</strong></td></tr>
+    <tr><td>Network alone</td><td class="num">0.3958</td><td class="num">0.7069</td></tr>
+    </tbody></table></div>
+  <p>On 5,217 held-out transactions, 490 fraudulent.</p>
+
+  <div class="rail warn">
+    <div class="t">Volunteer this before they find it</div>
+    <p>Fusion leads on <strong>PR-AUC</strong>, which is the right metric at 9.4%
+    positives. On <strong>AUROC the behavioural detector alone edges ahead</strong>.
+    Both are on screen. Saying it first is a much stronger position than being
+    caught by it — and the reason to prefer PR-AUC here is real: it reflects what
+    an analyst actually experiences when most traffic is legitimate.</p>
+  </div>
+
+  <h2 id="threshold"><span class="n">05</span> Thresholds — the honest answer</h2>
+
+  <p>There are <strong>two different thresholds</strong> in the system and they
+  are justified differently. Do not conflate them.</p>
+
+  <h3>1 — The Network detector's threshold: 0.1830</h3>
+  <p><strong>Principled.</strong> Tuned on the validation window for best F1, then
+  frozen. Never touched test. The model publishes it on its own
+  <code>/health</code>, and the console reads it from there rather than storing a
+  copy. Its bands follow from it: <code>high</code> is exactly that threshold,
+  <code>medium</code> is half of it, <code>critical</code> is the 99.5th
+  percentile of scored accounts.</p>
+
+  <h3>2 — The fused operating point: 0.80 / 0.65 / 0.50</h3>
+  <p><strong>Chosen, not derived</strong> — and say so. The fused score has no
+  calibration of its own, so there is no principled value to compute. What
+  justifies it is the <strong>Thresholds page</strong>, which replays stored
+  decisions at a different line and shows what would have been caught and missed.</p>
+
+  <div class="rail">
+    <div class="t">If a panel member pushes on the fused line</div>
+    <p>"It is an operating point, not a derived constant — the fused score is not
+    calibrated, so there is nothing to derive. What we can defend is the
+    trade-off: at 0.80 we get precision 1.000 and recall 0.559 on the held-out
+    window. The page lets an operator move it and see that trade-off before
+    committing."</p>
+  </div>
+
+  <p>Both come from one definition now, <code>backend/thresholds.py</code>. There
+  were once four disagreeing copies — the page displayed one, the monitor fired
+  on another, and every stored verdict was labelled by a third.</p>
+
+  <h2 id="validate"><span class="n">06</span> Validation — how to prove it live</h2>
+
+  <p>Do not describe accuracy. Demonstrate it. Four things you can run in front
+  of them.</p>
+
+  <h3>1 · Upload a labelled file</h3>
+  <p><strong>Network → Demo mode → Upload a CSV</strong>, or
+  <strong>Fusion → Score a file</strong>. Files live in
+  <code>~/Downloads/deepsentinel demo/</code>. Both panels read the label column,
+  mark every row right or wrong, and report precision, recall and F1.</p>
+  <p>The pair to run back to back:
+  <code>graphsage_best_1000_fresh_receiver.csv</code> (recall 0.389) and
+  <code>graphsage_hard_1000_established_receiver.csv</code> (recall 0.014). Same
+  size, same 72 frauds — <strong>recall differs 28× while accuracy moves 0.013</strong>.
+  That contrast is the strongest argument you have for not quoting accuracy.</p>
+
+  <h3>2 · Score an account that does not exist</h3>
+  <p><strong>Network → Demo mode</strong>. Invent an account, attach it to a real
+  one, score it. Change <em>only the amount</em>: 500 → 0.2855, 5,000 → 0.7866,
+  200,000 → 0.9911. The account had no stored score; the model built one from the
+  transaction you typed.</p>
+  <div class="rail warn">
+    <div class="t">Do not demo this by changing the sender</div>
+    <p>Measured: ten different senders at the same amount all score between
+    0.8630 and 0.8751. On a one-transaction account there is no topology yet, so
+    magnitude is the only feature that varies. The structural features earn their
+    keep on accounts with a real neighbourhood — which is what the two 1,000-row
+    files measure.</p>
+  </div>
+
+  <h3>3 · Show it refusing bad input</h3>
+  <p>Hand it an unrelated CSV: <em>"missing required column(s): nameOrig,
+  nameDest, amount, type, step."</em> Type an amount of 0, or make an account pay
+  itself — each is refused by name, next to the button. The API refuses more than
+  the panel can produce by hand: a payment larger than the sender's balance,
+  balances that do not match the amount, a step outside 1–743.</p>
+
+  <h3>4 · Turn a detector off</h3>
+  <p><strong>Fusion → Live</strong>. On fraud case <code>LK-2026-0041</code>:
+  network −1.77 (innocent), behaviour −1.30 (innocent), timing +7.62 (fraud).
+  Fused = <strong>0.8954, CRITICAL</strong>. With timing absent the same
+  transaction scores <strong>0.0111 — LOW</strong>. Two of three detectors are
+  wrong and the system is still right.</p>
+
+  <h2 id="qa"><span class="n">07</span> Questions they will ask</h2>
+
+  <div class="card">
+    <div class="qa"><div class="q">Did all three of your novelties work?</div>
+      <div class="a"><strong>No, and we measured it.</strong> The sampler is worth
+        +0.16 test F1. The subgraph extractor is explainability, not accuracy.
+        Edge attention showed <strong>no measurable effect</strong> — 12 seeds per
+        arm, d = −0.14, p = 0.73. Getting to that answer meant finding and fixing
+        a bug in our own layer first. Section 03 has the full account.</div></div>
+
+    <div class="qa"><div class="q">How do you know it is not overfitting?</div>
+      <div class="a">Train, validation and test are <strong>separate time
+        windows</strong> — steps 1–600, 601–700, 701–743. Features are recomputed
+        per snapshot, so no training feature contains future information. The
+        threshold was tuned on validation and test was used once.</div></div>
+
+    <div class="qa"><div class="q">Your accuracy is 0.919 — isn't that suspicious?</div>
+      <div class="a">Yes, and it is on screen with the caveat.
+        <strong>Flagging nothing at all scores 0.906</strong>. Precision 0.668 and
+        recall 0.271 are the figures that mean something.</div></div>
+
+    <div class="qa"><div class="q">Why is recall so low?</div>
+      <div class="a">The graph is extremely sparse — 507,100 disconnected
+        components, the largest 90 accounts, and every large one is a tree. We can
+        also show it precisely: recall falls from 0.364 when the receiver is a
+        first-time receiver to 0.000 once it has six or more incoming transfers.
+        It is a property of the data, and the reason we fuse three detectors.</div></div>
+
+    <div class="qa"><div class="q">Is this real data?</div>
+      <div class="a"><strong>No — PaySim, simulated.</strong> Say it plainly. It
+        is the standard public benchmark because real transaction data cannot be
+        released. Production deployment would require validation on institutional
+        data.</div></div>
+
+    <div class="qa"><div class="q">Show me the RAG.</div>
+      <div class="a">Fusion → <strong>Typologies</strong>. Ten FATF typologies in
+        ChromaDB, embedded with all-MiniLM-L6-v2, retrieved by similarity. The
+        matched one is highlighted with its score.</div></div>
+
+    <div class="qa"><div class="q">Does the LLM make things up?</div>
+      <div class="a">It can only cite the detector outputs and the retrieved
+        typology — nothing else is passed to it. The pipeline diagram draws that
+        constraint, and there is a grounded-vs-ungrounded comparison view.</div></div>
+
+    <div class="qa"><div class="q">What happens if a model goes down?</div>
+      <div class="a">It abstains. Its score is imputed at its training mean and
+        the verdict shrunk toward neutral by 0.18, so the number says less
+        evidence went into it. Nothing crashes and no fake score is invented.</div></div>
+
+    <div class="qa"><div class="q">Why GraphSAGE and not a GCN?</div>
+      <div class="a">GraphSAGE learns an <strong>aggregator</strong> — a function
+        from neighbourhood to embedding — rather than one fixed embedding per
+        node. That is what lets it score an account created after training. Mule
+        accounts are always new, so a transductive model is blind to exactly the
+        accounts that matter.</div></div>
+  </div>
+
+  <h2 id="limits"><span class="n">08</span> Limitations — state these first</h2>
+
+  <p>A team that names its own limits is trusted on everything else it says.</p>
+  <ul>
+    <li><strong>Simulated data.</strong> PaySim, not real transactions.</li>
+    <li><strong>Edge attention contributes nothing measurable</strong> on this
+      graph. We report it as a null result with n = 12 per arm rather than
+      quietly keeping the claim.</li>
+    <li><strong>A very sparse graph.</strong> Most accounts transact once, so the
+      network detector's recall is low by construction.</li>
+    <li><strong>A flattering dataset.</strong> A single PaySim column
+      (<code>newbalanceDest == 0</code>) reaches precision 1.000 and recall 0.502
+      with no model at all.</li>
+    <li><strong>The fused operating point is chosen, not derived.</strong></li>
+    <li><strong>Demo-mode scores are uncalibrated.</strong> The isotonic
+      calibrator was never saved as a reusable artefact, so the inductive path
+      reports raw model output and the page says so.</li>
+    <li><strong>Not certified for production financial decisioning.</strong></li>
+  </ul>
+
+  <footer>
+    Every number here was measured, not remembered — the ablation from three to
+    twelve seeds per arm under <code>temporal_snapshots_leakage_free</code>, the
+    rest read from the running system. Where a figure appears here it also appears
+    on a page in the console, computed from the model rather than typed in.
+  </footer>
+</main>
+</div>
+</div>
