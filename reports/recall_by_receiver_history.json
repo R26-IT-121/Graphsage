@@ -1,0 +1,73 @@
+{
+  "question": "How does detection change with the receiving account's prior history?",
+  "protocol": "temporal_snapshots_leakage_free",
+  "window": "test, steps 701-743",
+  "threshold": 0.183024,
+  "grouped_by": "in-degree of the destination account in the served graph",
+  "rows": [
+    {
+      "in_degree": "1",
+      "rows": 1778,
+      "fraud": 332,
+      "caught": 121,
+      "recall": 0.3645,
+      "precision": 0.7857
+    },
+    {
+      "in_degree": "2",
+      "rows": 757,
+      "fraud": 35,
+      "caught": 6,
+      "recall": 0.1714,
+      "precision": 0.3
+    },
+    {
+      "in_degree": "3",
+      "rows": 522,
+      "fraud": 27,
+      "caught": 3,
+      "recall": 0.1111,
+      "precision": 0.5
+    },
+    {
+      "in_degree": "4",
+      "rows": 396,
+      "fraud": 24,
+      "caught": 2,
+      "recall": 0.0833,
+      "precision": 0.25
+    },
+    {
+      "in_degree": "5",
+      "rows": 307,
+      "fraud": 18,
+      "caught": 1,
+      "recall": 0.0556,
+      "precision": 0.2
+    },
+    {
+      "in_degree": "6",
+      "rows": 234,
+      "fraud": 5,
+      "caught": 0,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "in_degree": "7",
+      "rows": 186,
+      "fraud": 7,
+      "caught": 0,
+      "recall": 0.0,
+      "precision": 0.0
+    },
+    {
+      "in_degree": "8+",
+      "rows": 1037,
+      "fraud": 42,
+      "caught": 0,
+      "recall": 0.0,
+      "precision": 0.0
+    }
+  ]
+}
