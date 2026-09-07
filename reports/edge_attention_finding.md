@@ -69,23 +69,36 @@ Two claims come out of this, and they are not equally strong.
 +0.0685 val F1, Cohen's d = 10.6, p < 0.001, no overlap between the two sets of
 seeds. The aggregation was wrong and correcting it is a large, certain gain.
 
-**Whether attention itself helps is not yet established.**
+**Edge attention makes no measurable difference, and that is now settled.**
 
-| configuration | val F1 (3 seeds) | seeds |
+Three seeds suggested attention was slightly ahead (+0.0045 val F1, p = 0.216).
+That was noise. At twelve seeds per arm the difference disappears and changes
+sign:
+
+| configuration | n | val F1 |
 |---|---|---|
-| 3b + attention-weighted mean | 0.3665 ± 0.0036 | 0.3699, 0.3669, 0.3627 |
-| 3c — the same system, no attention | 0.3620 ± 0.0040 | 0.3635, 0.3649, 0.3575 |
+| 3b + attention-weighted mean | 12 | 0.3645 ± 0.0035 |
+| 3c — the same system, no attention | 12 | 0.3650 ± 0.0036 |
 
-The difference is **+0.0045 val F1, p = 0.216 (Welch, n = 3 per arm)**. The
-ranges overlap: the worst seed with attention (0.3627) falls below the best
-seed without it (0.3649). Cohen's d is 1.20 — a real effect size, but three
-seeds cannot resolve an effect that size. Roughly twelve seeds per arm would be
-needed for 80% power.
+**Difference −0.0005. Cohen's d = −0.14. Welch t = −0.35, p = 0.729.**
 
-So the defensible statement today is: **with correct aggregation, edge
-attention no longer harms the model, and may help; the difference is inside the
-noise at three seeds.** Reporting it as a confirmed improvement would overstate
-what was measured.
+An effect size of 0.14 is negligible, and with twelve seeds per arm the
+comparison has ample power to detect anything larger. The honest conclusion is
+that on this graph, once the aggregation is correct, the Edge-MLP contributes
+nothing measurable over the same architecture without it.
+
+This is worth stating precisely, because two weaker claims are tempting and
+both would be wrong. Attention does not *hurt* — that was the aggregation bug,
+and it is fixed. Nor is the result merely "inconclusive" — twelve seeds per arm
+around d = −0.14 is a positive finding of no effect, not an absence of
+evidence.
+
+Why it should have been expected, in hindsight: the six edge features are
+largely redundant with the twelve node features the model already reads.
+`drain_ratio`, `src_drained` and `dst_was_empty` describe the same drain-to-
+empty event that the node-level fresh-receiver and outgoing-drain features
+already encode. Attention re-weights messages using information the aggregator
+had anyway.
 
 ## What this says about the method
 
