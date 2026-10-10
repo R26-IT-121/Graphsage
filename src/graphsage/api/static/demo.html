@@ -293,8 +293,8 @@ function plainVerdict(p) {
   const ev = sg ? sg.structural_evidence : null;
   const shape = sg ? PATTERN_PLAIN[sg.pattern] : "no surrounding activity";
   if (p.risk_level === "LOW")
-    return `Receiving account <b>${dest}</b> scores riskier than only <b>${pct}%</b> of all
-      receiving accounts — the model sees it as safe. The picture below shows its normal
+    return `Receiving account <b>${dest}</b> has only a <b>${pct}%</b> estimated chance of
+      being a mule account, so the model sees it as safe. The picture below shows its normal
       network of counterparties (${shape}) so you can verify nothing looks off.`;
   const fresh = ev && ev.convergence_count > 1
     ? ` <b>${ev.convergence_count}</b> different senders pay into it` +
@@ -302,8 +302,8 @@ function plainVerdict(p) {
         ? `, and <b>${Math.round(ev.fresh_sender_ratio * 100)}%</b> of them are brand-new
            accounts with no history — a classic sign of a coordinated ring.` : ".")
     : "";
-  return `Receiving account <b>${dest}</b> scores riskier than <b>${pct}%</b> of all receiving
-    accounts. The network around it shows <b>${shape}</b>.${fresh}
+  return `Receiving account <b>${dest}</b> has an estimated <b>${pct}%</b> chance of being a
+    mule account. The network around it shows <b>${shape}</b>.${fresh}
     ${sg && sg.structural_evidence.mules_in_subgraph > 0
       ? ` The model flags <b>${sg.structural_evidence.mules_in_subgraph}</b> account(s) in this
          picture as suspected mules.` : ""}`;
@@ -326,7 +326,7 @@ function render(p) {
   const tiles = document.getElementById("tiles");
   tiles.innerHTML =
     tile((p.relational_risk_score * 100).toFixed(1) + "%",
-         "risk percentile — share of accounts this one out-scores") +
+         "estimated chance this account is a mule (calibrated)") +
     (sg ? tile(sg.node_count, "accounts in the surrounding network") : "") +
     (sg ? tile(sg.edge_count, "transactions between them") : "") +
     (sg && sg.structural_evidence.convergence_count > 1
@@ -361,7 +361,7 @@ function render(p) {
 
 function fillTable(sg) {
   const t = document.getElementById("nodetable");
-  t.innerHTML = `<tr><th>account</th><th>role</th><th class="num">risk percentile</th>
+  t.innerHTML = `<tr><th>account</th><th>role</th><th class="num">mule probability</th>
     <th class="num">payments in</th><th class="num">payments out</th><th class="num">total received</th></tr>` +
     sg.nodes.slice().sort((a, b) => b.node_risk_score - a.node_risk_score).map(n =>
       `<tr><td>${n.account_id}</td>
@@ -466,7 +466,7 @@ function drawGraph(sg) {
     });
     attachTip(c, `<b>${n.account_id}</b>
       <span class="m">${roleName(n.role, flagged)}</span><br>
-      <span class="m">risk percentile</span> ${(n.node_risk_score * 100).toFixed(1)}%<br>
+      <span class="m">mule probability</span> ${(n.node_risk_score * 100).toFixed(1)}%<br>
       <span class="m">payments in / out</span> ${n.in_degree} / ${n.out_degree}<br>
       <span class="m">total received</span> ${n.total_received_amount.toLocaleString()}
       ${n.fraud_count_received ? `<br><span class="m">known fraud received</span> ${n.fraud_count_received}` : ""}`);
