@@ -43,6 +43,7 @@ class LiveModel:
         k: int = 2,
         max_nodes: int = 4000,
         device: str = "cpu",
+        attn_norm: bool | None = None,
     ):
         self.device = torch.device(device)
         self.data = data
@@ -63,16 +64,20 @@ class LiveModel:
 
         self.x = torch.load(node_features, weights_only=True, map_location="cpu").float()
         # How this checkpoint aggregated is part of the architecture, so it
-        # comes from the checkpoint rather than from the class defaults. A
-        # checkpoint saved before those flags existed predates the fix and gets
-        # the old behaviour, which is what it was trained with.
+        # comes from the checkpoint rather than from the class defaults. Some
+        # attention-normalised checkpoints were saved before the flag was
+        # recorded; for those the bundle's record (`attn_norm`) decides, and
+        # with neither the checkpoint gets the old behaviour.
+        if "attn_norm" in ckpt:
+            attn_norm = bool(ckpt["attn_norm"])
         self.model = EdgeEnhancedGraphSAGE(
             in_dim=self.x.shape[1],
             edge_dim=int(data.edge_attr.shape[1]),
             hidden_dim=int(hp.get("hidden_dim", 64)),
-            attn_norm=bool(ckpt.get("attn_norm", False)),
+            attn_norm=bool(attn_norm),
             attn_init_bias=float(ckpt.get("attn_init_bias", 0.0)),
         )
+        self.meta["attn_norm"] = bool(attn_norm)
         self.model.load_state_dict(ckpt["state_dict"])
         self.model.eval()
         self.model.to(self.device)

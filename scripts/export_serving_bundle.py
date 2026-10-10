@@ -182,6 +182,10 @@ def main() -> None:
             "protocol": "temporal_snapshots_leakage_free",
             "calibration": "isotonic_fitted_on_validation_window",
             "has_edge_attention": has_attention,
+            # The serving path reloads these weights for live inference, and
+            # needs to rebuild them with the aggregation they were exported under.
+            "checkpoint": ckpt_path.name,
+            "attn_norm": attn_norm,
             "val_f1_at_tuned_threshold": round(float(val_f1), 4),
             "step_range": [int(graph.edge_step.min()), int(graph.edge_step.max())],
         },

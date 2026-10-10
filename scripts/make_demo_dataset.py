@@ -6,7 +6,7 @@ read the raw graph plus a separate score cache; when the served model changed,
 the "fraud ring" scenario silently became LOW risk.)
 
 Scenarios, chosen to exercise every branch the contract defines:
-  CRITICAL       highest-scoring fraud sink that has a ring of senders
+  CRITICAL       highest-scoring fraud sink with several senders (widest ring first)
   HIGH           a flagged account just above the tuned threshold
   LOW            a genuinely low-scoring destination
   NOT_APPLICABLE a PAYMENT-type transaction (out of model scope)
@@ -98,9 +98,15 @@ def main() -> None:
     fraud = b["edge_isFraud"] == 1
     dst_score = scores[ei[1]]
 
-    # CRITICAL — a real fraud sink with a ring of senders that the model scores high.
-    crit_edge = pick_edge(b, fraud & (in_deg[ei[1]] >= 4) & (dst_score >= critical),
-                          scores, "max")
+    # CRITICAL — a real fraud sink with several senders that the model scores
+    # high, taking the widest ring that still reaches the band. The
+    # attention-normalised model rarely scores established receivers that high
+    # (reports/recall_by_receiver_history.md), so this falls back to fewer.
+    for min_senders in (4, 3, 2):
+        ring = fraud & (in_deg[ei[1]] >= min_senders) & (dst_score >= critical)
+        if ring.any():
+            break
+    crit_edge = pick_edge(b, ring, scores, "max")
     # HIGH — flagged, but below the critical tail.
     high_edge = pick_edge(b, fraud & (dst_score >= threshold) & (dst_score < critical),
                           scores, "max")
@@ -113,8 +119,9 @@ def main() -> None:
               f"  in_degree={int(in_deg[ei[1, e]])}")
 
     scenarios = [
-        txn_entry("Fraud ring (hub-and-spoke)",
-                  "Many senders converging on one mule sink — expect CRITICAL with a large subgraph",
+        txn_entry("Mule account (several senders)",
+                  f"A real fraud sink with {int(in_deg[ei[1, crit_edge]])} incoming "
+                  "transfers, scored in the top 0.5% of receivers: expect CRITICAL",
                   b, names, crit_edge, "TX_DEMO_HUB_001"),
         txn_entry("Suspicious account",
                   "Above the tuned decision threshold but not extreme — expect HIGH",

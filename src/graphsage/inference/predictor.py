@@ -106,13 +106,20 @@ class GraphPredictor:
         # lookup.
         self.live = None
         self.live_error = None
-        ckpt = repo_root / "checkpoints" / "temporal_stage3b_v2_seed0.pt"
+        # The weights that produced the bundle, so the live path and the
+        # precomputed scores are the same model. Bundles exported before the
+        # checkpoint was recorded came from the seed-0 run.
+        ckpt = repo_root / "checkpoints" / self.meta.get(
+            "checkpoint", "temporal_stage3b_v2_seed0.pt"
+        )
         feats = repo_root / "data" / "graph" / "node_features_v2.pt"
         if ckpt.exists() and feats.exists():
             try:
                 from graphsage.inference.live import LiveModel
 
-                self.live = LiveModel(ckpt, feats, self.data)
+                self.live = LiveModel(
+                    ckpt, feats, self.data, attn_norm=self.meta.get("attn_norm")
+                )
             except Exception as exc:                    # noqa: BLE001
                 self.live_error = f"{type(exc).__name__}: {exc}"
         else:
